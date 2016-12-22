@@ -1,9 +1,15 @@
 Liberator - sent to make you Free
 ---
 
-The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate
+[![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/notxcain/aecor)
+[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/notxcain/aecor)
+[![Join the chat at https://gitter.im/aecor/liberator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aecor/liberator)
 
-Example
+The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate.
+
+It is built using ![scala.meta](http://scalameta.org), ![Cats](https://github.com/typelevel/cats) and a bit of ![Shapeless](https://github.com/milessabin/shapeless).
+
+Usage example
 ```scala
 @free
 trait KeyValueStore[F[_]] {
@@ -94,5 +100,7 @@ val task = freeProgram.foldMap(freeAlgebra(ProductK(taskKeyValueStore, taskLoggi
 
 task.runAsync // the only side-effecting call
 
-
 ```
+
+Known issues:
+- At the moment only supports liberation of traits of kind `* -> *`

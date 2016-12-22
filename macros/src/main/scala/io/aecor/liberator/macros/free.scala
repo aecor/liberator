@@ -1,4 +1,4 @@
-package io.aecor.free.macros
+package io.aecor.liberator.macros
 
 import scala.collection.immutable.Seq
 import scala.meta._
