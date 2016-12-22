@@ -1,5 +1,4 @@
-Liberator - sent to make you Free
----
+# Liberator - sent to make you Free
 
 [![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/aecor/liberator)
 [![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/aecor/liberator)
@@ -9,7 +8,19 @@ The goal of this library is to generate everything you need to create programs u
 
 It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/typelevel/cats) and a bit of [Shapeless](https://github.com/milessabin/shapeless).
 
-Usage example
+### Using Liberator
+
+Liberator supports Scala 2.11 only due to missing support of 2.12 from scala.meta paradise (subject to change very soon)
+
+To start using Liberator add the following to your `build.sbt` file:
+
+```scala
+libraryDependencies += "io.aecor" %% "liberator" % "0.1.0"
+```
+
+
+### Usage example
+
 ```scala
 @free
 trait KeyValueStore[F[_]] {
@@ -19,7 +30,7 @@ trait KeyValueStore[F[_]] {
 }
 ```
 
-this will be expanded at compile time to this (desanitized for brevity) 
+The code above will be expanded at compile time to this (desanitized for brevity):
 ```scala
 trait KeyValueStore[F[_]] {
   def setValue(key: String, value: String): F[Unit]
@@ -102,5 +113,5 @@ task.runAsync // the only side-effecting call
 
 ```
 
-Known issues:
-- At the moment only supports liberation of traits of kind `* -> *`
+### Known issues
+- Only supports liberation of traits of kind `* -> *`
