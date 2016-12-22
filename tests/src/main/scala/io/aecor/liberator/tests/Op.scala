@@ -1,4 +1,4 @@
-package io.aecor.liberator.test
+package io.aecor.liberator.tests
 
 import cats.data.{ State, StateT }
 import cats.free.{ Free, Inject }
