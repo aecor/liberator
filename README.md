@@ -1,8 +1,8 @@
 Liberator - sent to make you Free
 ---
 
-[![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/notxcain/aecor)
-[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/notxcain/aecor)
+[![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/aecor/liberator)
+[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/aecor/liberator)
 [![Join the chat at https://gitter.im/aecor/liberator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aecor/liberator)
 
 The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate.
