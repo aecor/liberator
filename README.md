@@ -7,7 +7,7 @@ Liberator - sent to make you Free
 
 The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate.
 
-It is built using ![scala.meta](http://scalameta.org), ![Cats](https://github.com/typelevel/cats) and a bit of ![Shapeless](https://github.com/milessabin/shapeless).
+It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/typelevel/cats) and a bit of [Shapeless](https://github.com/milessabin/shapeless).
 
 Usage example
 ```scala
