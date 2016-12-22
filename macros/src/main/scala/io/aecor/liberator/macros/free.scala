@@ -1,4 +1,4 @@
-package io.aecor.free.macros
+package io.aecor.liberator.macros
 
 import scala.collection.immutable.Seq
 import scala.meta._
@@ -16,7 +16,6 @@ class free extends scala.annotation.StaticAnnotation {
 
 object FreeMacro {
   def apply(t: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
-    println(s"IN: \n $t ${companion.map(_.toString).getOrElse("")}")
     val typeName = t.name
     val freeName = s"${typeName.value}Free"
     val freeTypeName = Type.Name(freeName)
@@ -80,8 +79,8 @@ object FreeMacro {
          })
      """,
     q"""
-        implicit val freeAlgebra: io.aecor.free.FreeAlgebra.Aux[$typeName, $freeTypeName] =
-          new io.aecor.free.FreeAlgebra[$typeName] {
+        implicit val freeAlgebra: io.aecor.liberator.FreeAlgebra.Aux[$typeName, $freeTypeName] =
+          new io.aecor.liberator.FreeAlgebra[$typeName] {
             type Out[A] = $freeTypeName[A]
             override def apply[F[_]](of: $typeName[F]): _root_.cats.arrow.FunctionK[$freeTypeName, F] = ${Term.Name(typeName.value)}.toFunctionK(of)
           }
@@ -97,9 +96,7 @@ object FreeMacro {
 
     }
 
-    val result = Term.Block(Seq(t, newCompanion))
-    println(s"OUT: \n $result")
-    result
+    Term.Block(Seq(t, newCompanion))
   }
 }
 

@@ -1,4 +1,4 @@
-package io.aecor.free
+package io.aecor.liberator
 
 import cats.data.Coproduct
 import cats.~>

@@ -37,7 +37,8 @@ lazy val macros =
     )
   )
 
-lazy val test = project.settings(commonSettings, noPublishSettings).dependsOn(macros)
+lazy val tests =
+  project.settings(name := "tests", commonSettings, noPublishSettings).dependsOn(macros)
 
 lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
 

@@ -1,9 +1,26 @@
-Liberator - sent to make you Free
----
+# Liberator - sent to make you Free
 
-The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate
+[![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/aecor/liberator)
+[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/aecor/liberator)
+[![Join the chat at https://gitter.im/aecor/liberator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aecor/liberator)
 
-Example
+The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate.
+
+It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/typelevel/cats) and a bit of [Shapeless](https://github.com/milessabin/shapeless).
+
+### Using Liberator
+
+Liberator supports only Scala 2.11 due to missing support of 2.12 from scala.meta paradise (subject to change very soon)
+
+To start using Liberator add the following to your `build.sbt` file:
+
+```scala
+libraryDependencies += "io.aecor" %% "liberator" % "0.1.0"
+```
+
+
+### Usage example
+
 ```scala
 @free
 trait KeyValueStore[F[_]] {
@@ -13,7 +30,7 @@ trait KeyValueStore[F[_]] {
 }
 ```
 
-this will be expanded at compile time to this (desanitized for brevity) 
+The code above will be expanded at compile time to this (desanitized for brevity):
 ```scala
 trait KeyValueStore[F[_]] {
   def setValue(key: String, value: String): F[Unit]
@@ -94,5 +111,7 @@ val task = freeProgram.foldMap(freeAlgebra(ProductK(taskKeyValueStore, taskLoggi
 
 task.runAsync // the only side-effecting call
 
-
 ```
+
+### Known issues
+- Only supports liberation of traits of kind `* -> *`

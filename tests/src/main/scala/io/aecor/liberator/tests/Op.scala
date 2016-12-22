@@ -1,11 +1,11 @@
-package io.aecor.free.test
+package io.aecor.liberator.tests
 
 import cats.data.{ State, StateT }
 import cats.free.{ Free, Inject }
 import cats.implicits._
 import cats.{ Applicative, Eval, Monad }
-import io.aecor.free.macros.free
-import io.aecor.free.{ FreeAlgebra, ProductKK }
+import io.aecor.liberator.macros.free
+import io.aecor.liberator.{ FreeAlgebra, ProductKK }
 
 import scala.io.StdIn
 
