@@ -80,8 +80,8 @@ object FreeMacro {
          })
      """,
     q"""
-        implicit val freeAlgebra: io.aecor.free.FreeAlgebra.Aux[$typeName, $freeTypeName] =
-          new io.aecor.free.FreeAlgebra[$typeName] {
+        implicit val freeAlgebra: io.aecor.liberator.FreeAlgebra.Aux[$typeName, $freeTypeName] =
+          new io.aecor.liberator.FreeAlgebra[$typeName] {
             type Out[A] = $freeTypeName[A]
             override def apply[F[_]](of: $typeName[F]): _root_.cats.arrow.FunctionK[$freeTypeName, F] = ${Term.Name(typeName.value)}.toFunctionK(of)
           }
