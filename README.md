@@ -20,32 +20,79 @@ trait KeyValueStore[F[_]] {
   def getValue(key: String): F[Option[String]]
 }
 object KeyValueStore {
+  // A helper method to get an instance of KeyValueStore[F]
   def apply[F[_]](implicit instance: KeyValueStore[F]): KeyValueStore[F] = instance
+  
+  
+  // A free AST
   sealed abstract class KeyValueStoreFree[A] extends Product with Serializable
   object KeyValueStoreFree {
     final case class SetValue(key: String, value: String) extends KeyValueStoreFree[Unit]
     final case class GetValue(key: String) extends KeyValueStoreFree[Option[String]]
   }
-  def fromFunctionK[F[_]](f: KeyValueStoreFree ~> F]): KeyValueStore[F] = new KeyValueStore[F] {
-    def setValue(key: String, value: String): F[Unit] = f(KeyValueStoreFree.SetValue(key, value))
-    def getValue(key: String): F[Option[String]] = f(KeyValueStoreFree.GetValue(key))
-  }
-  def toFunctionK[F[_]](ops: KeyValueStore[F]): KeyValueStoreFree ~> F = new (KeyValueStoreFree ~> F) {
-    def apply[A](op: KeyValueStoreFree[A]): F[A] = op match {
-      case KeyValueStoreFree.SetValue(key, value) => ops.setValue(key, value)
-      case KeyValueStoreFree.GetValue(key) => ops.getValue(key)
+  
+  // A function to convert a natural transformation to your trait
+  def fromFunctionK[F[_]](f: KeyValueStoreFree ~> F]): KeyValueStore[F] = 
+    new KeyValueStore[F] {
+      def setValue(key: String, value: String): F[Unit] = 
+        f(KeyValueStoreFree.SetValue(key, value))
+        
+      def getValue(key: String): F[Option[String]] = 
+        f(KeyValueStoreFree.GetValue(key))
     }
-  }
-  type FreeHelper1[F[_]] = { type Out[A] = _root_.cats.free.Free[F, A] } //workaround of a bug in scala.meta
+    
+    
+  // A function to create a natural tranformation from your trait
+  def toFunctionK[F[_]](ops: KeyValueStore[F]): KeyValueStoreFree ~> F = 
+    new (KeyValueStoreFree ~> F) {
+      def apply[A](op: KeyValueStoreFree[A]): F[A] = op match {
+        case KeyValueStoreFree.SetValue(key, value) => ops.setValue(key, value)
+        case KeyValueStoreFree.GetValue(key) => ops.getValue(key)
+      }
+    }
+    
+  type FreeHelper1[F[_]] = { type Out[A] = Free[F, A] } //workaround of a bug in scala.meta
   implicit def freeInstance[F[_]](implicit inject: Inject[KeyValueStoreFree, F]): KeyValueStore[FreeHelper1[F]#Out] = 
     fromFunctionK(new (KeyValueStoreFree ~> FreeHelper1[F]#Out) { 
       def apply[A](op: KeyValueStoreFree[A]): Free[F, A] = Free.inject(op) 
     })
+    
   implicit val freeAlgebra: FreeAlgebra.Aux[KeyValueStore, KeyValueStoreFree] = 
     new FreeAlgebra[KeyValueStore] {
       type Out[A] = KeyValueStoreFree[A]
-      override def apply[F[_]](of: KeyValueStore[F]): KeyValueStoreFree ~> F = KeyValueStore.toFunctionK(of)
+      override def apply[F[_]](of: KeyValueStore[F]): KeyValueStoreFree ~> F = 
+        KeyValueStore.toFunctionK(of)
     }
 }
+
+```
+
+Given all above you can write your programs like this
+
+```scala
+
+def program[F[_]: Monad: KeyValueStore: Logging](key: String): F[String] =
+    for {
+      value <- KeyValueStore[F].getValue(key)
+      _ <- Logging[F].debug(s"Got value $value")
+      newValue = UUID.randomUUID().toString
+      _ <- KeyValueStore[F].setValue(key, newValue)
+      _ <- Logging[F].debug(s"Update value to $newValue")
+    } yield newValue    
+
+val freeAlgebra = FreeAlgebra[ProductK[KeyValueStore, Logging]]
+
+// Notice that you don't have to know anything about presence of AST
+
+val freeProgram = program[Free[freeAlgebra.Out, ?]]("key")
+
+val taskKeyValueStore: KeyValueStore[Task] = _
+
+val taskLogging: Logging[Task] = _
+
+val task = freeProgram.foldMap(freeAlgebra(ProductK(taskKeyValueStore, taskLogging)))
+
+task.runAsync // the only side-effecting call
+
 
 ```

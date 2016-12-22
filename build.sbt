@@ -1,3 +1,5 @@
+import ReleaseTransformations._
+
 scalaVersion in ThisBuild := "2.11.8"
 scalaOrganization in ThisBuild := "org.typelevel"
 
@@ -27,6 +29,7 @@ lazy val macros =
   project.settings(
     name := "liberator",
     commonSettings,
+    publishSettings,
     libraryDependencies ++= Seq(
       "org.scalameta" %% "scalameta" % "1.4.0",
       "com.chuusai" %% "shapeless" % "2.3.2",
@@ -34,4 +37,61 @@ lazy val macros =
     )
   )
 
-lazy val test = project.settings(commonSettings).dependsOn(macros)
+lazy val test = project.settings(commonSettings, noPublishSettings).dependsOn(macros)
+
+lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
+
+lazy val publishSettings = Seq(
+  releaseCommitMessage := s"Set version to ${if (releaseUseGlobalVersion.value) (version in ThisBuild).value
+  else version.value}",
+  releaseIgnoreUntrackedFiles := true,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  homepage := Some(url("https://github.com/aecor/liberator")),
+  licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
+  publishMavenStyle := true,
+  publishArtifact in Test := false,
+  pomIncludeRepository := { _ =>
+    false
+  },
+  publishTo := {
+    val nexus = "https://oss.sonatype.org/"
+    if (isSnapshot.value)
+      Some("snapshots" at nexus + "content/repositories/snapshots")
+    else
+      Some("releases" at nexus + "service/local/staging/deploy/maven2")
+  },
+  autoAPIMappings := true,
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/aecor/liberator"),
+      "scm:git:git@github.com:aecor/liberator.git"
+    )
+  ),
+  pomExtra :=
+    <developers>
+      <developer>
+        <id>notxcain</id>
+        <name>Denis Mikhaylov</name>
+        <url>https://github.com/notxcain</url>
+      </developer>
+    </developers>
+)
+
+lazy val sharedReleaseProcess = Seq(
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    runTest,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    publishArtifacts,
+    setNextVersion,
+    commitNextVersion,
+    ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
+    pushChanges
+  )
+)
+
+addCommandAlias("validate", ";compile;test")
