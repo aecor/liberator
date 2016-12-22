@@ -10,7 +10,7 @@ It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/
 
 ### Using Liberator
 
-Liberator supports Scala 2.11 only due to missing support of 2.12 from scala.meta paradise (subject to change very soon)
+Liberator supports only Scala 2.11 due to missing support of 2.12 from scala.meta paradise (subject to change very soon)
 
 To start using Liberator add the following to your `build.sbt` file:
 
