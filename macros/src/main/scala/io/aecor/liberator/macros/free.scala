@@ -16,7 +16,6 @@ class free extends scala.annotation.StaticAnnotation {
 
 object FreeMacro {
   def apply(t: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
-    println(s"IN: \n $t ${companion.map(_.toString).getOrElse("")}")
     val typeName = t.name
     val freeName = s"${typeName.value}Free"
     val freeTypeName = Type.Name(freeName)
@@ -97,9 +96,7 @@ object FreeMacro {
 
     }
 
-    val result = Term.Block(Seq(t, newCompanion))
-    println(s"OUT: \n $result")
-    result
+    Term.Block(Seq(t, newCompanion))
   }
 }
 
