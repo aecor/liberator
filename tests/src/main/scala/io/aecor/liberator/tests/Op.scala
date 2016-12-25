@@ -10,10 +10,9 @@ import io.aecor.liberator.{ FreeAlgebra, ProductKK }
 import scala.io.StdIn
 
 @free
-trait KeyValueStore[F[_]] {
-  def setValue(key: String, value: String): F[Unit]
-
-  def getValue(key: String): F[Option[String]]
+trait KeyValueStore[K, V, F[_]] {
+  def setValue(key: K, value: V): F[Unit]
+  def getValue(key: K): F[Option[V]]
 }
 
 @free
@@ -30,12 +29,16 @@ trait UserInteraction[F[_]] {
   def writeLn(s: String): F[Unit]
 }
 
-object StateKeyValueStore extends KeyValueStore[State[Map[String, String], ?]] {
-  override def setValue(key: String, value: String): State[Map[String, String], Unit] =
-    StateT.modify[Eval, Map[String, String]](_.updated(key, value))
+class StateKeyValueStore[K, V] extends KeyValueStore[K, V, State[Map[K, V], ?]] {
+  override def setValue(key: K, value: V): State[Map[K, V], Unit] =
+    StateT.modify[Eval, Map[K, V]](_.updated(key, value))
 
-  override def getValue(key: String): State[Map[String, String], Option[String]] =
+  override def getValue(key: K): State[Map[K, V], Option[V]] =
     StateT.inspect(_.get(key))
+}
+
+object StateKeyValueStore {
+  def apply[K, V]: StateKeyValueStore[K, V] = new StateKeyValueStore[K, V]
 }
 
 class ConsoleLogging[F[_]: Applicative] extends Logging[F] {
@@ -64,22 +67,23 @@ object App {
 
   def main(args: Array[String]): Unit = {
 
-    def setAndGetPreviousValue[F[_]: Monad: KeyValueStore: Logging](
-      key: String,
-      value: String
-    ): F[Option[String]] =
+    def setAndGetPreviousValue[K, V, F[_]: Monad: KeyValueStore[K, V, ?[_]]: Logging](
+      key: K,
+      value: V
+    ): F[Option[V]] =
       for {
-        previous <- KeyValueStore[F].getValue(key)
+        previous <- KeyValueStore[K, V, F].getValue(key)
         _ <- Logging[F].info(s"Was $key = $previous")
         _ <- Logging[F].debug(s"Setting $key to $value")
-        _ <- KeyValueStore[F].setValue(key, value)
+        _ <- KeyValueStore[K, V, F].setValue(key, value)
       } yield previous
 
-    def program[F[_]: Monad: KeyValueStore: Logging: UserInteraction]: F[Unit] =
+    def program[F[_]: Monad: KeyValueStore[String, String, ?[_]]: Logging: UserInteraction]
+      : F[Unit] =
       for {
         key <- UserInteraction[F].readLn("Enter key: ")
         value <- UserInteraction[F].readLn("Enter value: ")
-        previous <- setAndGetPreviousValue[F](key, value)
+        previous <- setAndGetPreviousValue[String, String, F](key, value)
         message = previous
           .map(s => s"Previous value was $s")
           .getOrElse("Previous value was not set")
@@ -93,16 +97,18 @@ object App {
       } yield ()
 
     val freeAlgebra =
-      FreeAlgebra[ProductKK[KeyValueStore, ProductKK[Logging, UserInteraction, ?[_]], ?[_]]]
-
-    implicit class FAOps[F[_[_]], A[_]](fa: F[A]) {
-      def and[G[_[_]]](ga: G[A]): ProductKK[F, G, A] = ProductKK(fa, ga)
-    }
+      FreeAlgebra[ProductKK[KeyValueStore[String, String, ?[_]],
+                            ProductKK[Logging, UserInteraction, ?[_]],
+                            ?[_]]]
 
     val k = freeAlgebra(
-      StateKeyValueStore and
-        (ConsoleLogging[State[Map[String, String], ?]]
-          and ConsoleUserInteraction[State[Map[String, String], ?]])
+      ProductKK(
+        StateKeyValueStore[String, String],
+        ProductKK(
+          ConsoleLogging[State[Map[String, String], ?]],
+          ConsoleUserInteraction[State[Map[String, String], ?]]
+        )
+      )
     )
 
     implicit val userInteractionInject: Inject[UserInteraction.UserInteractionFree,
