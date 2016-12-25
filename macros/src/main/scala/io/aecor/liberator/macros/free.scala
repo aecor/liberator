@@ -22,40 +22,12 @@ object FreeMacro {
     val traitStats = base.templ.stats.get
     val (theF, abstractParams) = (base.tparams.last.name, base.tparams.dropRight(1))
     val abstractTypes = abstractParams.map(_.name.value).map(Type.Name(_))
-    val cases = traitStats.map {
-      case q"def $name[..$tps](..$params): $theF[$out]" =>
-        q"final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params) extends ${Ctor.Name(freeName)}[..$abstractTypes, $out]"
-    }
 
     def caseName(name: Term.Name) = s"$freeName.${name.value.capitalize}"
-
-    val methods = traitStats.map {
-      case q"def $name[..$tps](..$params): $theF[$out]" =>
-        val ctor = Ctor.Name(caseName(name))
-        val args = params.map(_.name.value).map(Term.Name(_))
-        q"def $name[..$tps](..$params): $theF[$out] = f($ctor(..$args))"
-    }
-
-    val patMatCases = traitStats.map {
-      case q"def $methodName[..$tps](..$params): $theF[$out]" =>
-        val args = params.map(_.name.value).map(Term.Name(_))
-        val exractArgs = args.map(Pat.Var.Term(_))
-        val ctor = Term.Name(caseName(methodName))
-        p"case $ctor(..$exractArgs) => ops.$methodName(..$args)"
-    }
 
     val freeHelperName = Type.fresh("FreeHelper")
     val appliedFreeName = Type.fresh(s"Applied$freeTypeName")
     val appliedBaseName = Type.fresh(s"Applied${typeName.value}")
-    val aParam = q"trait F[A]".tparams.head
-
-
-    implicit class IdOps[A](a: A) {
-      def tap(f: A => Unit): A = {
-        f(a)
-        a
-      }
-    }
 
     val appliedFreeNameOut =
       if (abstractTypes.isEmpty) {
@@ -76,66 +48,77 @@ object FreeMacro {
         val types = base.tparams.map(x => Type.Name(x.name.value))
         q"def apply[..${base.tparams}](implicit instance: $typeName[..$types]): $typeName[..$types] = instance"
       },
-      q"sealed abstract class $freeTypeName[..$abstractParams, A] extends Product with Serializable",
-      q"""object ${Term.Name(freeName)} {
-        ..$cases
-      }
-      """,
-        q"""
+      q"sealed abstract class $freeTypeName[..$abstractParams, A] extends Product with Serializable", {
+        val freeAdtLeafs = traitStats.map {
+          case q"def $name[..$tps](..$params): $_[$out]" =>
+            q"""final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params)
+              extends ${Ctor.Name(freeName)}[..$abstractTypes, $out]"""
+        }
+        q"""object ${Term.Name(freeName)} {
+        ..$freeAdtLeafs
+        }"""
+      },
+      q"""
          type $appliedFreeName[..$abstractParams] = {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
          }
-       """.tap(println)
-      ,
+       """, {
+        val methods = traitStats.map {
+          case q"def $name[..$tps](..$params): $_[$out]" =>
+            val ctor = Ctor.Name(caseName(name))
+            val args = params.map(_.name.value).map(Term.Name(_))
+            q"def $name[..$tps](..$params): F[$out] = f($ctor(..$args))"
+        }
         q"""def fromFunctionK[..$abstractParams, F[_]](f: _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, F] =
          new ${Ctor.Name(typeName.value)}[..$abstractTypes, F] {
           ..$methods
           }
        """
-    ,
+      }, {
+        val cases = traitStats.map {
+          case q"def $methodName[..$tps](..$params): $theF[$out]" =>
+            val args = params.map(_.name.value).map(Term.Name(_))
+            val exractArgs = args.map(Pat.Var.Term(_))
+            val ctor = Term.Name(caseName(methodName))
+            p"case $ctor(..$exractArgs) => ops.$methodName(..$args)"
+        }
         q"""def toFunctionK[..$abstractParams, F[_]](ops: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
          new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] {
           def apply[A](op: $freeTypeName[..$abstractTypes, A]): F[A] =
-            op match { ..case $patMatCases }
+            op match { ..case $cases }
          }
        """
-      ,
-        q"""
+      },
+      q"""
            type $freeHelperName[F[_]] = {
              type Out[A] = _root_.cats.free.Free[F, A]
            }
-         """
-    ,
-
+         """,
       q"""
        implicit def freeInstance[..$abstractParams, F[_]](implicit inject: _root_.cats.free.Inject[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, $freeHelperName[F]#Out] =
          fromFunctionK(new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $freeHelperName[F]#Out] {
           def apply[A](op: $freeTypeName[..$abstractTypes, A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)
          })
-     """
-    ,
-
-        q"""
+     """,
+      q"""
            type $appliedBaseName[..$abstractParams] = {
              type Out[F[_]] = $typeName[..$abstractTypes, F]
            }
          """,
-
       q"""
         implicit def liberatorFreeAlgebra[..$abstractParams]: io.aecor.liberator.FreeAlgebra.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
           new io.aecor.liberator.FreeAlgebra[$appliedBaseNameOut] {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
-            override def apply[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] = ${Term.Name(typeName.value)}.toFunctionK(of)
+            override def apply[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] = ${Term
+        .Name(typeName.value)}.toFunctionK(of)
           }
-    """)
-
-
-
+    """
+    )
 
     val newCompanion = companion match {
       case Some(c) =>
         val oldTemplStats = c.templ.stats.getOrElse(Nil)
-          c.copy(templ = c.templ.copy(stats = Some(companionStats ++ oldTemplStats)))
+        c.copy(templ = c.templ.copy(stats = Some(companionStats ++ oldTemplStats)))
       case None =>
         q"object ${Term.Name(typeName.value)} { ..$companionStats }"
 
@@ -146,5 +129,3 @@ object FreeMacro {
     Term.Block(Seq(base, newCompanion))
   }
 }
-
-
