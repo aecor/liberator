@@ -114,4 +114,4 @@ task.runAsync // the only side-effecting call
 ```
 
 ### Known issues
-- Only supports liberation of traits of kind `* -> *`
+- There is a possibility of type name collision if base trait contains abstract type named F and it is not last unary type constructor.
