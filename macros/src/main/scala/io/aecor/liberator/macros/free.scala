@@ -43,13 +43,20 @@ object FreeMacro {
         t"$appliedBaseName[..$abstractTypes]#Out"
       }
 
+
+
+    val abstractMethods = traitStats.map {
+      case m @ q"def $name[..$tps](..$params): ${someF: Type.Name}[$out]" if someF.value == theF.value =>
+        m
+    }
+
     val companionStats: Seq[Stat] = Seq(
       {
         val types = base.tparams.map(x => Type.Name(x.name.value))
         q"def apply[..${base.tparams}](implicit instance: $typeName[..$types]): $typeName[..$types] = instance"
       },
       q"sealed abstract class $freeTypeName[..$abstractParams, A] extends Product with Serializable", {
-        val freeAdtLeafs = traitStats.map {
+        val freeAdtLeafs = abstractMethods.map {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             q"""final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params)
               extends ${Ctor.Name(freeName)}[..$abstractTypes, $out]"""
@@ -63,7 +70,7 @@ object FreeMacro {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
          }
        """, {
-        val methods = traitStats.map {
+        val methods = abstractMethods.map {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             val ctor = Ctor.Name(caseName(name))
             val args = params.map(_.name.value).map(Term.Name(_))
@@ -75,7 +82,7 @@ object FreeMacro {
           }
        """
       }, {
-        val cases = traitStats.map {
+        val cases = abstractMethods.map {
           case q"def $methodName[..$tps](..$params): $theF[$out]" =>
             val args = params.map(_.name.value).map(Term.Name(_))
             val exractArgs = args.map(Pat.Var.Term(_))
