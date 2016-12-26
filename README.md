@@ -15,9 +15,11 @@ Liberator supports only Scala 2.11 due to missing support of 2.12 from scala.met
 To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
+scalaOrganization := "org.typelevel"
 libraryDependencies += "io.aecor" %% "liberator" % "0.1.0"
+scalacOptions += "-Ypartial-unification"
+addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersion.full)
 ```
-
 
 ### Usage example
 
@@ -87,6 +89,10 @@ object KeyValueStore {
 Given all above you can write your programs like this
 
 ```scala
+@free
+trait Logging[F[_]] {
+  def debug(s: String): F[Unit]
+}
 
 def program[F[_]: Monad: KeyValueStore: Logging](key: String): F[String] =
     for {
@@ -97,20 +103,19 @@ def program[F[_]: Monad: KeyValueStore: Logging](key: String): F[String] =
       _ <- Logging[F].debug(s"Update value to $newValue")
     } yield newValue    
 
-val freeAlgebra = FreeAlgebra[ProductK[KeyValueStore, Logging]]
+val freeAlgebra = FreeAlgebra[ProductKK[KeyValueStore, Logging, ?[_]]]
 
 // Notice that you don't have to know anything about presence of AST
 
 val freeProgram = program[Free[freeAlgebra.Out, ?]]("key")
 
-val taskKeyValueStore: KeyValueStore[Task] = _
+val taskKeyValueStore: KeyValueStore[Task] = ???
 
-val taskLogging: Logging[Task] = _
+val taskLogging: Logging[Task] = ???
 
-val task = freeProgram.foldMap(freeAlgebra(ProductK(taskKeyValueStore, taskLogging)))
+val task = freeProgram.foldMap(freeAlgebra(ProductKK(taskKeyValueStore, taskLogging)))
 
 task.runAsync // the only side-effecting call
-
 ```
 
 ### Known issues
