@@ -5,15 +5,14 @@ import cats.~>
 import shapeless.Lazy
 
 /**
-  * Represents the ability to convert some O[F] to natural transformation from some Out to F
+  * Represents the ability to convert F[A] to natural transformation from Out to A
   *
-  * Where Out is called free algebra of O
+  * Out is called a free algebra of F
   *
-  * @tparam O
   */
-trait FreeAlgebra[O[_[_]]] {
+trait FreeAlgebra[F[_[_]]] {
   type Out[_]
-  def apply[F[_]](of: O[F]): Out ~> F
+  def apply[A[_]](of: F[A]): Out ~> A
 }
 
 object FreeAlgebra {
