@@ -16,7 +16,7 @@ To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaOrganization := "org.typelevel"
-libraryDependencies += "io.aecor" %% "liberator" % "0.1.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.2.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersion.full)
 ```
