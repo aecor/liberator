@@ -24,6 +24,8 @@ addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersio
 ### Usage example
 
 ```scala
+import io.aecor.liberator.macros.free
+
 @free
 trait KeyValueStore[F[_]] {
   def setValue(key: String, value: String): F[Unit]
@@ -89,6 +91,9 @@ object KeyValueStore {
 Given all above you can write your programs like this
 
 ```scala
+import io.aecor.liberator.macros.free
+import io.aecor.liberator.{ FreeAlgebra, ProductKK }
+
 @free
 trait Logging[F[_]] {
   def debug(s: String): F[Unit]
