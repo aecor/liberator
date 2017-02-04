@@ -31,14 +31,21 @@ lazy val macros =
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.4.0",
+      "org.scalameta" %% "scalameta" % "1.6.0-635",
       "com.chuusai" %% "shapeless" % "2.3.2",
-      "org.typelevel" %% "cats" % "0.8.1"
+      "org.typelevel" %% "cats" % "0.9.0"
     )
   )
 
 lazy val tests =
-  project.settings(name := "tests", commonSettings, noPublishSettings).dependsOn(macros)
+  project
+    .settings(
+      name := "tests",
+      commonSettings,
+      noPublishSettings,
+      libraryDependencies ++= Seq("io.monix" %% "monix-eval" % "2.2.1")
+    )
+    .dependsOn(macros)
 
 lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
 

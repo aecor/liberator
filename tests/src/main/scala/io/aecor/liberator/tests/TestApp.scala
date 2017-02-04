@@ -5,7 +5,7 @@ import cats.free.{ Free, Inject }
 import cats.implicits._
 import cats.{ Applicative, Eval, Monad }
 import io.aecor.liberator.macros.free
-import io.aecor.liberator.{ FreeAlgebra, ProductKK }
+import io.aecor.liberator.{ FreeAlgebra, ProductKK, Term }
 
 import scala.io.StdIn
 
@@ -13,6 +13,20 @@ import scala.io.StdIn
 trait KeyValueStore[K, V, F[_]] {
   def setValue(key: K, value: V): F[Unit]
   def getValue(key: K): F[Option[V]]
+}
+
+object KeyValueStore {
+  object terms {
+    type KeyValueStoreApplied[K, V] = {
+      type T[F[_]] = KeyValueStore[K, V, F]
+    }
+
+    def setValue[K, V](key: K, value: V): Term[KeyValueStoreApplied[K, V]#T, Unit] =
+      new Term[KeyValueStoreApplied[K, V]#T, Unit] {
+        override def apply[F[_]](alg: KeyValueStore[K, V, F])(implicit F: Monad[F]): F[Unit] =
+          alg.setValue(key, value)
+      }
+  }
 }
 
 @free
@@ -63,7 +77,7 @@ object ConsoleUserInteraction {
   def apply[F[_]: Applicative]: UserInteraction[F] = new ConsoleUserInteraction[F]
 }
 
-object App {
+object TestApp {
 
   def main(args: Array[String]): Unit = {
 
@@ -101,7 +115,7 @@ object App {
                             ProductKK[Logging, UserInteraction, ?[_]],
                             ?[_]]]
 
-    val k = freeAlgebra(
+    val k = freeAlgebra.toFunctionK(
       ProductKK(
         StateKeyValueStore[String, String],
         ProductKK(
@@ -111,8 +125,7 @@ object App {
       )
     )
 
-    implicit val userInteractionInject: Inject[UserInteraction.UserInteractionFree,
-                                               freeAlgebra.Out] =
+    implicit val userInteractionInject: Inject[UserInteraction.UserInteractionOp, freeAlgebra.Out] =
       Inject.catsFreeRightInjectInstance(
         Inject.catsFreeRightInjectInstance(Inject.catsFreeReflexiveInjectInstance)
       )

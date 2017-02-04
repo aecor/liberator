@@ -17,7 +17,7 @@ class free extends scala.annotation.StaticAnnotation {
 object FreeMacro {
   def apply(base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val typeName = base.name
-    val freeName = s"${typeName.value}Free"
+    val freeName = s"${typeName.value}Op"
     val freeTypeName = Type.Name(freeName)
     val traitStats = base.templ.stats.get
     val (theF, abstractParams) = (base.tparams.last.name, base.tparams.dropRight(1))
@@ -48,6 +48,8 @@ object FreeMacro {
     val abstractMethods = traitStats.map {
       case m @ q"def $name[..$tps](..$params): ${someF: Type.Name}[$out]" if someF.value == theF.value =>
         m
+      case m @ q"def $name: ${someF: Type.Name}[$out]" =>
+        m
     }
 
     val companionStats: Seq[Stat] = Seq(
@@ -60,6 +62,8 @@ object FreeMacro {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             q"""final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params)
               extends ${Ctor.Name(freeName)}[..$abstractTypes, $out]"""
+          case m @ q"def $name: ${someF: Type.Name}[$out]" =>
+            q"""final case object ${Term.Name(name.value.capitalize)} extends ${Ctor.Name(freeName)}[..$abstractTypes, $out]"""
         }
         q"""object ${Term.Name(freeName)} {
         ..$freeAdtLeafs
@@ -75,6 +79,9 @@ object FreeMacro {
             val ctor = Ctor.Name(caseName(name))
             val args = params.map(_.name.value).map(Term.Name(_))
             q"def $name[..$tps](..$params): F[$out] = f($ctor(..$args))"
+          case m @ q"def $name: ${someF: Type.Name}[$out]" =>
+            val objectName = Term.Name(caseName(name))
+            q"def $name: F[$out] = f($objectName)"
         }
         q"""def fromFunctionK[..$abstractParams, F[_]](f: _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, F] =
          new ${Ctor.Name(typeName.value)}[..$abstractTypes, F] {
@@ -88,6 +95,9 @@ object FreeMacro {
             val exractArgs = args.map(Pat.Var.Term(_))
             val ctor = Term.Name(caseName(methodName))
             p"case $ctor(..$exractArgs) => ops.$methodName(..$args)"
+          case m @ q"def $methodName: ${someF: Type.Name}[$out]" =>
+            val objectName = Term.Name(caseName(methodName))
+            p"case $objectName => ops.$methodName"
         }
         q"""def toFunctionK[..$abstractParams, F[_]](ops: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
          new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] {
@@ -116,8 +126,10 @@ object FreeMacro {
         implicit def liberatorFreeAlgebra[..$abstractParams]: io.aecor.liberator.FreeAlgebra.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
           new io.aecor.liberator.FreeAlgebra[$appliedBaseNameOut] {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
-            override def apply[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] = ${Term
-        .Name(typeName.value)}.toFunctionK(of)
+            override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
+              ${Term.Name(typeName.value)}.toFunctionK(of)
+            override def fromFunctionK[F[_]](f: _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F]):  $typeName[..$abstractTypes, F] =
+              ${Term.Name(typeName.value)}.fromFunctionK(f)
           }
     """
     )
@@ -130,8 +142,6 @@ object FreeMacro {
         q"object ${Term.Name(typeName.value)} { ..$companionStats }"
 
     }
-
-    println(newCompanion)
 
     Term.Block(Seq(base, newCompanion))
   }
