@@ -5,7 +5,8 @@ import cats.implicits._
 import cats.{ Monad, ~> }
 import io.aecor.liberator.macros.free
 import io.aecor.liberator.syntax._
-import io.aecor.liberator.{ ProductKK, Term }
+import io.aecor.liberator.tests.FooServiceComponent1.TermF
+import io.aecor.liberator.{ ProductKK, ProjectK, Term }
 
 @free
 trait Api[F[_]] {
@@ -18,14 +19,16 @@ trait FooService[F[_]] {
 }
 
 object FooService {
-  object terms {
-    def doFoo(params: Map[String, String]): Term[FooService, String] =
-      new Term[FooService, String] {
-        override def apply[F[_]](alg: FooService[F])(implicit F: Monad[F]): F[String] =
-          alg.doFoo(params)
-      }
-  }
-
+  implicit def instanceTerm[M[_[_]]](
+    implicit pr: ProjectK[M, FooService]
+  ): FooService[TermF[M]#T] =
+    new FooService[TermF[M]#T] {
+      override def doFoo(params: Map[String, String]): Term[M, String] =
+        new Term[M, String] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[String] =
+            pr.prj(alg).doFoo(params)
+        }
+    }
 }
 
 @free
@@ -34,13 +37,19 @@ trait FooServiceComponent1[F[_]] {
 }
 
 object FooServiceComponent1 {
-  object terms {
-    def doFooStep1(params: Map[String, String]): Term[FooServiceComponent1, String] =
-      new Term[FooServiceComponent1, String] {
-        override def apply[F[_]](alg: FooServiceComponent1[F])(implicit F: Monad[F]): F[String] =
-          alg.doFooStep1(params)
-      }
+  type TermF[M[_[_]]] = {
+    type T[A] = Term[M, A]
   }
+  implicit def instanceTerm[M[_[_]]](
+    implicit pr: ProjectK[M, FooServiceComponent1]
+  ): FooServiceComponent1[TermF[M]#T] =
+    new FooServiceComponent1[TermF[M]#T] {
+      override def doFooStep1(params: Map[String, String]): Term[M, String] =
+        new Term[M, String] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[String] =
+            pr.prj(alg).doFooStep1(params)
+        }
+    }
 }
 
 @free
@@ -49,13 +58,16 @@ trait FooServiceComponent2[F[_]] {
 }
 
 object FooServiceComponent2 {
-  object terms {
-    def doFooStep2(params: Map[String, String]): Term[FooServiceComponent2, String] =
-      new Term[FooServiceComponent2, String] {
-        override def apply[F[_]](alg: FooServiceComponent2[F])(implicit F: Monad[F]): F[String] =
-          alg.doFooStep2(params)
-      }
-  }
+  implicit def instanceTerm[M[_[_]]](
+    implicit pr: ProjectK[M, FooServiceComponent2]
+  ): FooServiceComponent2[TermF[M]#T] =
+    new FooServiceComponent2[TermF[M]#T] {
+      override def doFooStep2(params: Map[String, String]): Term[M, String] =
+        new Term[M, String] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[String] =
+            pr.prj(alg).doFooStep2(params)
+        }
+    }
 }
 
 @free
@@ -64,13 +76,16 @@ trait BarService[F[_]] {
 }
 
 object BarService {
-  object terms {
-    def doBar(params: Map[String, String]): Term[BarService, String] =
-      new Term[BarService, String] {
-        override def apply[F[_]](alg: BarService[F])(implicit F: Monad[F]): F[String] =
-          alg.doBar(params)
-      }
-  }
+  implicit def instanceTerm[M[_[_]]](
+    implicit pr: ProjectK[M, BarService]
+  ): BarService[TermF[M]#T] =
+    new BarService[TermF[M]#T] {
+      override def doBar(params: Map[String, String]): Term[M, String] =
+        new Term[M, String] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[String] =
+            pr.prj(alg).doBar(params)
+        }
+    }
 }
 
 @free
@@ -79,72 +94,78 @@ trait FileIO[F[_]] {
 }
 
 object FileIO {
-  object terms {
-    def appendLine(filePath: String, line: String): Term[FileIO, Unit] =
-      new Term[FileIO, Unit] {
-        override def apply[F[_]](alg: FileIO[F])(implicit F: Monad[F]): F[Unit] =
-          alg.appendLine(filePath, line)
-      }
-  }
-}
-
-object ApiInTermsOfFooServiceAndBarService
-    extends Api[Term[ProductKK[FooService, BarService, ?[_]], ?]] {
-  import BarService.terms._
-  import FooService.terms._
-  override def doThing(
-    aThing: String,
-    params: Map[String, String]
-  ): Term[ProductKK[FooService, BarService, ?[_]], Either[String, String]] =
-    aThing match {
-      case "foo" =>
-        doFoo(params).map(_.asRight[String]).project
-      case "bar" =>
-        doBar(params).map(_.asRight[String]).project
-      case other =>
-        Term.pure("Unknown command".asLeft)
+  implicit def instanceTerm[M[_[_]]](implicit pr: ProjectK[M, FileIO]): FileIO[TermF[M]#T] =
+    new FileIO[TermF[M]#T] {
+      override def appendLine(filePath: String, line: String): Term[M, Unit] =
+        new Term[M, Unit] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[Unit] =
+            pr.prj(alg).appendLine(filePath, line)
+        }
     }
 }
 
-object FooServiceInTermsOfComponent1AndComponent2
-    extends FooService[Term[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]], ?]] {
-  import FooServiceComponent1.terms._
-  import FooServiceComponent2.terms._
-  override def doFoo(
-    params: Map[String, String]
-  ): Term[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]], String] =
-    for {
-      r1 <- doFooStep1(params).project[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]]]
-      r2 <- doFooStep2(params).project[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]]]
-    } yield s"$r1 && $r2"
+class DefaultApi[F[_]: Monad: FooService: BarService] extends Api[F] {
 
+  override def doThing(aThing: String, params: Map[String, String]): F[Either[String, String]] =
+    aThing match {
+      case "foo" =>
+        FooService[F].doFoo(params).map(_.asRight[String])
+      case "bar" =>
+        BarService[F].doBar(params).map(_.asRight[String])
+      case other =>
+        "Unknown command".asLeft[String].pure[F]
+    }
 }
 
-object FooServiceComponent1InTermsOfKeyValueStore
-    extends FooServiceComponent1[Term[KeyValueStore[String, String, ?[_]], ?]] {
-  override def doFooStep1(
-    params: Map[String, String]
-  ): Term[KeyValueStore[String, String, ?[_]], String] =
+object DefaultApi {
+  def terms: Api[Term[ProductKK[FooService, BarService, ?[_]], ?]] = new DefaultApi
+}
+
+class DefaultFooService[F[_]: Monad: FooServiceComponent1: FooServiceComponent2]
+    extends FooService[F] {
+  override def doFoo(params: Map[String, String]): F[String] =
+    for {
+      r1 <- FooServiceComponent1[F].doFooStep1(params)
+      r2 <- FooServiceComponent2[F].doFooStep2(params)
+    } yield s"$r1 && $r2"
+}
+
+object DefaultFooService {
+  def terms: FooService[Term[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]], ?]] =
+    new DefaultFooService[Term[ProductKK[FooServiceComponent1, FooServiceComponent2, ?[_]], ?]]
+}
+
+class DefaultFooServiceComponent1[F[_]: Monad: KeyValueStore[String, String, ?[_]]]
+    extends FooServiceComponent1[F] {
+  override def doFooStep1(params: Map[String, String]): F[String] =
     params.toVector
       .traverse {
         case (key, value) =>
-          KeyValueStore.terms.setValue(key, value)
+          KeyValueStore[String, String, F].setValue(key, value)
       }
       .map { x =>
         s"Inserted ${x.length} elements"
       }
-
 }
 
-object FooServiceComponent2InTermsOfFileIO extends FooServiceComponent2[Term[FileIO, ?]] {
-  import FileIO.terms._
-  override def doFooStep2(params: Map[String, String]): Term[FileIO, String] =
+object DefaultFooServiceComponent1 {
+  def terms: FooServiceComponent1[Term[KeyValueStore[String, String, ?[_]], ?]] =
+    new DefaultFooServiceComponent1[Term[KeyValueStore[String, String, ?[_]], ?]]
+}
+
+class DefaultFooServiceComponent2[F[_]: Monad: FileIO] extends FooServiceComponent2[F] {
+  override def doFooStep2(params: Map[String, String]): F[String] =
     params.toVector
       .traverse {
         case (key, value) =>
-          appendLine("fooServiceComponent2.dat", s"$key -> $value")
+          FileIO[F].appendLine("fooServiceComponent2.dat", s"$key -> $value")
       }
       .map(x => s"Appended ${x.length} lines")
+}
+
+object DefaultFooServiceComponent2 {
+  def terms: FooServiceComponent2[Term[FileIO, ?]] =
+    new DefaultFooServiceComponent2[Term[FileIO, ?]]
 }
 
 object StateFileIO extends FileIO[State[Map[String, Vector[String]], ?]] {
@@ -155,15 +176,19 @@ object StateFileIO extends FileIO[State[Map[String, Vector[String]], ?]] {
     }
 }
 
-object BarServiceInTermsOfFileIO extends BarService[Term[FileIO, ?]] {
-  import FileIO.terms._
-  override def doBar(params: Map[String, String]): Term[FileIO, String] =
+class DefaultBarService[F[_]: FileIO: Monad] extends BarService[F] {
+  override def doBar(params: Map[String, String]): F[String] =
     params.toVector
       .traverse {
         case (key, value) =>
-          appendLine("barService.dat", s"$key; $value")
+          FileIO[F].appendLine("barService.dat", s"$key; $value")
       }
       .map(x => s"Appended ${x.length} lines")
+}
+
+object DefaultBarService {
+  def terms: BarService[Term[FileIO, ?]] =
+    new DefaultBarService[Term[FileIO, ?]]
 }
 
 object FinallyTaglessApp extends App {
@@ -173,33 +198,31 @@ object FinallyTaglessApp extends App {
 
   type F[A] = State[AppState, A]
 
-  val fileIOF: FileIO[F] = StateFileIO.mapK(
-    Lambda[State[Map[String, Vector[String]], ?] ~> F](
+  val fileIO: FileIO[F] = StateFileIO.mapK(
+    λ[State[Map[String, Vector[String]], ?] ~> F](
       _.transformS(_.fileIOState, (s, x) => s.copy(fileIOState = x))
     )
   )
 
-  val keyValueStoreF: KeyValueStore[String, String, F] =
+  val keyValueStore: KeyValueStore[String, String, F] =
     StateKeyValueStore[String, String].mapK(
-      Lambda[State[Map[String, String], ?] ~> F](
+      λ[State[Map[String, String], ?] ~> F](
         _.transformS(_.keyValueStoreState, (s, x) => s.copy(keyValueStoreState = x))
       )
     )
 
-  val component1: FooServiceComponent1[F] =
-    FooServiceComponent1InTermsOfKeyValueStore.transpile(keyValueStoreF)
-
-  val component2: FooServiceComponent2[F] =
-    FooServiceComponent2InTermsOfFileIO.transpile(fileIOF)
-
-  val fooService: FooService[F] =
-    FooServiceInTermsOfComponent1AndComponent2.transpile(ProductKK(component1, component2))
-
-  val barService: BarService[F] =
-    BarServiceInTermsOfFileIO.transpile(fileIOF)
-
   val api: Api[F] =
-    ApiInTermsOfFooServiceAndBarService.transpile(ProductKK(fooService, barService))
+    DefaultApi.terms.transpile(
+      ProductKK(
+        DefaultFooService.terms.transpile(
+          ProductKK(
+            DefaultFooServiceComponent1.terms.transpile(keyValueStore),
+            DefaultFooServiceComponent2.terms.transpile(fileIO)
+          )
+        ),
+        DefaultBarService.terms.transpile(fileIO)
+      )
+    )
 
   val out = EitherT(api.doThing("foo", Map("b" -> "1", "a" -> "2")))
     .flatMapF { string =>

@@ -45,7 +45,7 @@ object Term extends TermInstances {
   }
   def transpile[M[_[_]], N[_[_]], F[_]: Monad](mtn: M[Term[N, ?]],
                                                nf: N[F])(implicit ev: FreeAlgebra[M]): M[F] =
-    ev.mapK(mtn)(Lambda[Term[N, ?] ~> F](_(nf)))
+    ev.mapK(mtn)(λ[Term[N, ?] ~> F](_(nf)))
 
 }
 

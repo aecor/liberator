@@ -5,7 +5,8 @@ import cats.free.{ Free, Inject }
 import cats.implicits._
 import cats.{ Applicative, Eval, Monad }
 import io.aecor.liberator.macros.free
-import io.aecor.liberator.{ FreeAlgebra, ProductKK, Term }
+import io.aecor.liberator.tests.FooServiceComponent1.TermF
+import io.aecor.liberator.{ FreeAlgebra, ProductKK, ProjectK, Term }
 
 import scala.io.StdIn
 
@@ -16,17 +17,25 @@ trait KeyValueStore[K, V, F[_]] {
 }
 
 object KeyValueStore {
-  object terms {
-    type KeyValueStoreApplied[K, V] = {
-      type T[F[_]] = KeyValueStore[K, V, F]
-    }
-
-    def setValue[K, V](key: K, value: V): Term[KeyValueStoreApplied[K, V]#T, Unit] =
-      new Term[KeyValueStoreApplied[K, V]#T, Unit] {
-        override def apply[F[_]](alg: KeyValueStore[K, V, F])(implicit F: Monad[F]): F[Unit] =
-          alg.setValue(key, value)
-      }
+  type KeyValueStoreF[K, V] = {
+    type T[F[_]] = KeyValueStore[K, V, F]
   }
+  implicit def termInstance[K, V, M[_[_]]](
+    implicit ev: ProjectK[M, KeyValueStoreF[K, V]#T]
+  ): KeyValueStore[K, V, TermF[M]#T] =
+    new KeyValueStore[K, V, TermF[M]#T] {
+      override def setValue(key: K, value: V): Term[M, Unit] =
+        new Term[M, Unit] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[Unit] =
+            ev.prj(alg).setValue(key, value)
+        }
+
+      override def getValue(key: K): Term[M, Option[V]] =
+        new Term[M, Option[V]] {
+          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[Option[V]] =
+            ev.prj(alg).getValue(key)
+        }
+    }
 }
 
 @free
