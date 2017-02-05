@@ -43,7 +43,12 @@ lazy val tests =
       name := "tests",
       commonSettings,
       noPublishSettings,
-      libraryDependencies ++= Seq("io.monix" %% "monix-eval" % "2.2.1")
+      libraryDependencies ++= Seq(
+        "io.monix" %% "monix-eval" % "2.2.1",
+        "io.monix" %% "monix-cats" % "2.2.1",
+        "io.circe" %% "circe-core" % "0.7.0",
+        "io.circe" %% "circe-generic" % "0.7.0"
+      )
     )
     .dependsOn(macros)
 

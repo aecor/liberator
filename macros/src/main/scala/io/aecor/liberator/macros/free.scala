@@ -26,6 +26,7 @@ object FreeMacro {
     def caseName(name: Term.Name) = s"$freeName.${name.value.capitalize}"
 
     val freeHelperName = Type.fresh("FreeHelper")
+    val termHelperName = Type.fresh("TermHelper")
     val appliedFreeName = Type.fresh(s"Applied$freeTypeName")
     val appliedBaseName = Type.fresh(s"Applied${typeName.value}")
 
@@ -118,13 +119,29 @@ object FreeMacro {
          })
      """,
       q"""
+           type $termHelperName[M[_[_]]] = {
+             type Out[A] = _root_.io.aecor.liberator.Term[M, A]
+           }
+         """,
+      q"""
+         implicit def termInstance[..$abstractParams, M[_[_]]](implicit extract: _root_.io.aecor.liberator.Extract[M, $appliedBaseNameOut]): $typeName[..$abstractTypes, $termHelperName[M]#Out] =
+                  fromFunctionK(new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $termHelperName[M]#Out] {
+                   def apply[A](op: $freeTypeName[..$abstractTypes, A]): _root_.io.aecor.liberator.Term[M, A] =
+                     new Term[M, A] {
+                      override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[A] =
+                        toFunctionK(extract(alg))(op)
+                      }
+                  })
+        """
+      ,
+      q"""
            type $appliedBaseName[..$abstractParams] = {
              type Out[F[_]] = $typeName[..$abstractTypes, F]
            }
          """,
       q"""
-        implicit def liberatorFreeAlgebra[..$abstractParams]: io.aecor.liberator.FreeAlgebra.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
-          new io.aecor.liberator.FreeAlgebra[$appliedBaseNameOut] {
+        implicit def liberatorOps[..$abstractParams]: io.aecor.liberator.Ops.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
+          new io.aecor.liberator.Ops[$appliedBaseNameOut] {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
             override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
               ${Term.Name(typeName.value)}.toFunctionK(of)

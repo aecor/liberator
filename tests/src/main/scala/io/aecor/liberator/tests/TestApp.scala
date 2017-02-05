@@ -1,41 +1,20 @@
 package io.aecor.liberator.tests
 
 import cats.data.{ State, StateT }
-import cats.free.{ Free, Inject }
 import cats.implicits._
-import cats.{ Applicative, Eval, Monad }
+import cats.{ Applicative, Eval, Monad, ~> }
 import io.aecor.liberator.macros.free
-import io.aecor.liberator.tests.FooServiceComponent1.TermF
-import io.aecor.liberator.{ FreeAlgebra, ProductKK, ProjectK, Term }
+import io.aecor.liberator.{ Extract, ProductKK, Term }
+import io.aecor.liberator.syntax._
+import io.circe.Decoder
 
 import scala.io.StdIn
 
 @free
 trait KeyValueStore[K, V, F[_]] {
   def setValue(key: K, value: V): F[Unit]
+
   def getValue(key: K): F[Option[V]]
-}
-
-object KeyValueStore {
-  type KeyValueStoreF[K, V] = {
-    type T[F[_]] = KeyValueStore[K, V, F]
-  }
-  implicit def termInstance[K, V, M[_[_]]](
-    implicit ev: ProjectK[M, KeyValueStoreF[K, V]#T]
-  ): KeyValueStore[K, V, TermF[M]#T] =
-    new KeyValueStore[K, V, TermF[M]#T] {
-      override def setValue(key: K, value: V): Term[M, Unit] =
-        new Term[M, Unit] {
-          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[Unit] =
-            ev.prj(alg).setValue(key, value)
-        }
-
-      override def getValue(key: K): Term[M, Option[V]] =
-        new Term[M, Option[V]] {
-          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[Option[V]] =
-            ev.prj(alg).getValue(key)
-        }
-    }
 }
 
 @free
@@ -50,6 +29,19 @@ trait UserInteraction[F[_]] {
   def readLn(prompt: String): F[String]
 
   def writeLn(s: String): F[Unit]
+}
+
+@free
+trait FileIO[F[_]] {
+  def appendLine(filePath: String, line: String): F[Unit]
+}
+
+object StateFileIO extends FileIO[State[Map[String, Vector[String]], ?]] {
+  override def appendLine(filePath: String,
+                          line: String): State[Map[String, Vector[String]], Unit] =
+    State.modify { state =>
+      state.updated(filePath, state.getOrElse(filePath, Vector.empty) :+ line)
+    }
 }
 
 class StateKeyValueStore[K, V] extends KeyValueStore[K, V, State[Map[K, V], ?]] {
@@ -74,6 +66,17 @@ class ConsoleLogging[F[_]: Applicative] extends Logging[F] {
 
 object ConsoleLogging {
   def apply[F[_]: Applicative]: Logging[F] = new ConsoleLogging[F]
+}
+
+class FileLogging[F[_]: FileIO](fileName: String) extends Logging[F] {
+  override def debug(value: String): F[Unit] = FileIO[F].appendLine(fileName, s"DEBUG: $value\n")
+
+  override def info(value: String): F[Unit] = FileIO[F].appendLine(fileName, s"INFO: $value\n")
+}
+
+object FileLogging {
+  def apply[F[_]: FileIO](fileName: String): Logging[F] = new FileLogging(fileName)
+  def term(fileName: String): Logging[Term[FileIO, ?]] = new FileLogging[Term[FileIO, ?]](fileName)
 }
 
 class ConsoleUserInteraction[F[_]: Applicative] extends UserInteraction[F] {
@@ -101,7 +104,7 @@ object TestApp {
         _ <- KeyValueStore[K, V, F].setValue(key, value)
       } yield previous
 
-    def program[F[_]: Monad: KeyValueStore[String, String, ?[_]]: Logging: UserInteraction]
+    def program[F[_]: Monad: Logging: UserInteraction: KeyValueStore[String, String, ?[_]]]
       : F[Unit] =
       for {
         key <- UserInteraction[F].readLn("Enter key: ")
@@ -119,32 +122,43 @@ object TestApp {
             }
       } yield ()
 
-    val freeAlgebra =
-      FreeAlgebra[ProductKK[KeyValueStore[String, String, ?[_]],
-                            ProductKK[Logging, UserInteraction, ?[_]],
-                            ?[_]]]
+    case class AppState(keyValueStoreState: Map[String, String],
+                        fileIOState: Map[String, Vector[String]])
 
-    val k = freeAlgebra.toFunctionK(
-      ProductKK(
-        StateKeyValueStore[String, String],
-        ProductKK(
-          ConsoleLogging[State[Map[String, String], ?]],
-          ConsoleUserInteraction[State[Map[String, String], ?]]
-        )
+    type AppF[A] = State[AppState, A]
+
+    val fileIO: FileIO[AppF] = StateFileIO.mapK(
+      λ[State[Map[String, Vector[String]], ?] ~> AppF](
+        _.transformS(_.fileIOState, (s, x) => s.copy(fileIOState = x))
       )
     )
 
-    implicit val userInteractionInject: Inject[UserInteraction.UserInteractionOp, freeAlgebra.Out] =
-      Inject.catsFreeRightInjectInstance(
-        Inject.catsFreeRightInjectInstance(Inject.catsFreeReflexiveInjectInstance)
+    val keyValueStore: KeyValueStore[String, String, AppF] =
+      StateKeyValueStore[String, String].mapK(
+        λ[State[Map[String, String], ?] ~> AppF](
+          _.transformS(_.keyValueStoreState, (s, x) => s.copy(keyValueStoreState = x))
+        )
       )
 
-    def freeProgram: Free[freeAlgebra.Out, Unit] = program[Free[freeAlgebra.Out, ?]]
+    def termProgram =
+      program[Term[ProductKK[KeyValueStore[String, String, ?[_]],
+                             ProductKK[Logging, UserInteraction, ?[_]],
+                             ?[_]], ?]]
+
+    val inters = ProductKK(
+      keyValueStore,
+      ProductKK(FileLogging.term("log.dat").transpile(fileIO), ConsoleUserInteraction[AppF])
+    )
+
+    implicit def loggingOpDecoder: Decoder[Logging.LoggingOp[_]] =
+      io.circe.generic.semiauto.deriveDecoder[Logging.LoggingOp[_]]
+
+    Server.mkServer(FileLogging.term("log.dat").transpile(fileIO))
 
     val out =
-      freeProgram.foldMap(k)
+      termProgram(inters)
 
-    val result = out.run(Map.empty)
+    val result = out.run(AppState(Map.empty, Map.empty))
 
     println(result.value)
 
