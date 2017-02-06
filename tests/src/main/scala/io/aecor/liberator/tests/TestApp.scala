@@ -1,13 +1,12 @@
 package io.aecor.liberator.tests
 
-import cats.data.{ State, StateT }
+import cats.data.{ Coproduct, State, StateT }
+import cats.free.{ Free, Inject }
 import cats.implicits._
 import cats.{ Applicative, Eval, Monad, ~> }
 import io.aecor.liberator.macros.free
-import io.aecor.liberator.{ Extract, ProductKK, Term }
 import io.aecor.liberator.syntax._
-import io.circe.Decoder
-
+import io.aecor.liberator.{ ProductKK, Term }
 import scala.io.StdIn
 
 @free
@@ -145,18 +144,28 @@ object TestApp {
                              ProductKK[Logging, UserInteraction, ?[_]],
                              ?[_]], ?]]
 
-    val inters = ProductKK(
+    type OpsCoproduct[A] =
+      Coproduct[KeyValueStore.KeyValueStoreOp[String, String, ?],
+                Coproduct[Logging.LoggingOp, UserInteraction.UserInteractionOp, ?],
+                A]
+
+    implicit val userInteractionInject: Inject[UserInteraction.UserInteractionOp, OpsCoproduct] =
+      Inject.catsFreeRightInjectInstance(
+        Inject.catsFreeRightInjectInstance(Inject.catsFreeReflexiveInjectInstance)
+      )
+
+    def freeProgram =
+      program[Free[OpsCoproduct, ?]]
+
+    val interpreters = ProductKK(
       keyValueStore,
       ProductKK(FileLogging.term("log.dat").transpile(fileIO), ConsoleUserInteraction[AppF])
     )
 
-    implicit def loggingOpDecoder: Decoder[Logging.LoggingOp[_]] =
-      io.circe.generic.semiauto.deriveDecoder[Logging.LoggingOp[_]]
-
-    Server.mkServer(FileLogging.term("log.dat").transpile(fileIO))
-
     val out =
-      termProgram(inters)
+      termProgram(interpreters).flatMap { _ =>
+        freeProgram.foldMap(interpreters.asFunctionK)
+      }
 
     val result = out.run(AppState(Map.empty, Map.empty))
 

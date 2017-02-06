@@ -31,7 +31,7 @@ lazy val macros =
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.6.0-635",
+      "org.scalameta" %% "scalameta" % "1.6.0-633",
       "com.chuusai" %% "shapeless" % "2.3.2",
       "org.typelevel" %% "cats" % "0.9.0"
     )
