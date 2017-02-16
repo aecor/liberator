@@ -23,6 +23,8 @@ addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersio
 
 ### Usage example
 
+The sign `?` is from [kind-projector](https://github.com/non/kind-projector) compiler plugin.
+
 ```scala
 import io.aecor.liberator.macros.free
 
