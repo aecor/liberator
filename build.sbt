@@ -9,7 +9,8 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
   ),
-  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersion.full),
+  crossScalaVersions := Seq("2.11.8", "2.12.1"),
+  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3"),
   scalacOptions += "-Xplugin-require:macroparadise",
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
@@ -31,7 +32,7 @@ lazy val macros =
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.6.0-633",
+      "org.scalameta" %% "scalameta" % "1.6.0",
       "com.chuusai" %% "shapeless" % "2.3.2",
       "org.typelevel" %% "cats" % "0.9.0"
     )

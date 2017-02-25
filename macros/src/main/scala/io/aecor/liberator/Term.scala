@@ -29,13 +29,13 @@ object Term extends TermInstances {
   }
 
   def transpile[M[_[_]], N[_[_]], F[_]: Monad](mtn: M[Term[N, ?]],
-                                               nf: N[F])(implicit ev: Ops[M]): M[F] =
+                                               nf: N[F])(implicit ev: Algebra[M]): M[F] =
     ev.mapK(mtn)(λ[Term[N, ?] ~> F](_(nf)))
 
 }
 
 final class TermSyntaxIdOps[M[_[_]], N[_[_]]](val self: M[Term[N, ?]]) extends AnyVal {
-  def transpile[F[_]: Monad](nf: N[F])(implicit ev: Ops[M]): M[F] =
+  def transpile[F[_]: Monad](nf: N[F])(implicit ev: Algebra[M]): M[F] =
     Term.transpile(self, nf)
 }
 
@@ -62,7 +62,7 @@ private[liberator] trait TermInstances {
         pure(f(fa))
     }
   implicit def generic[M[_[_]], N[_[_]]](implicit extract: Extract[M, N],
-                                         ops: Ops[N]): N[Term[M, ?]] =
+                                         ops: Algebra[N]): N[Term[M, ?]] =
     ops.fromFunctionK(new (ops.Out ~> Term[M, ?]) {
       override def apply[A](fa: ops.Out[A]): Term[M, A] =
         new Term[M, A] {

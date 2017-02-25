@@ -140,8 +140,8 @@ object FreeMacro {
            }
          """,
       q"""
-        implicit def liberatorOps[..$abstractParams]: io.aecor.liberator.Ops.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
-          new io.aecor.liberator.Ops[$appliedBaseNameOut] {
+        implicit def liberatorAlgebra[..$abstractParams]: io.aecor.liberator.Algebra.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
+          new io.aecor.liberator.Algebra[$appliedBaseNameOut] {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
             override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
               ${Term.Name(typeName.value)}.toFunctionK(of)

@@ -1,3 +1,6 @@
 package io.aecor.liberator
 
-object syntax extends TermSyntax with FreeAlgebraSyntax
+import io.aecor.liberator.Algebra.AlgebraSyntax
+import io.aecor.liberator.data.ProductKK.ProductKKSyntax
+
+object syntax extends TermSyntax with AlgebraSyntax with ProductKKSyntax

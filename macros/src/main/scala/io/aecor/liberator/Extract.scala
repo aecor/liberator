@@ -1,5 +1,7 @@
 package io.aecor.liberator
 
+import io.aecor.liberator.data.ProductKK
+
 sealed trait Extract[M[_[_]], N[_[_]]] {
   def apply[F[_]](fa: M[F]): N[F]
 }
@@ -20,8 +22,8 @@ private[liberator] sealed abstract class ExtractInstances {
     implicit extract: Extract[G, F]
   ): Extract[ProductKK[H, G, ?[_]], F] =
     new Extract[ProductKK[H, G, ?[_]], F] {
-      override def apply[A[_]](fa: ProductKK[H, G, A]): F[A] =
-        extract(fa.ga)
+      override def apply[A[_]](prod: ProductKK[H, G, A]): F[A] =
+        extract(prod.ga)
     }
 }
 
