@@ -66,10 +66,6 @@ object AlgebraMacro {
       }
 
     val companionStats: Seq[Stat] = Seq(
-      {
-        val types = base.tparams.map(x => Type.Name(x.name.value))
-        q"def apply[..${base.tparams}](implicit instance: $typeName[..$types]): $typeName[..$types] = instance"
-      },
       q"""sealed abstract class $opTypeName[..$abstractParams, A] extends Product with Serializable {
           ..$commonFieldsStat
          }

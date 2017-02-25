@@ -6,6 +6,10 @@ sealed trait Extract[M[_[_]], N[_[_]]] {
   def apply[F[_]](fa: M[F]): N[F]
 }
 
+object Extract extends ExtractInstances {
+  def apply[M[_[_]], N[_[_]]](implicit instance: Extract[M, N]): Extract[M, N] = instance
+}
+
 private[liberator] sealed abstract class ExtractInstances {
   implicit def liberatorReflexiveExtractInstance[F[_[_]]]: Extract[F, F] =
     new Extract[F, F] {
@@ -25,8 +29,4 @@ private[liberator] sealed abstract class ExtractInstances {
       override def apply[A[_]](prod: ProductKK[H, G, A]): F[A] =
         extract(prod.ga)
     }
-}
-
-object Extract extends ExtractInstances {
-  def apply[M[_[_]], N[_[_]]](implicit instance: Extract[M, N]): Extract[M, N] = instance
 }

@@ -6,8 +6,8 @@ import io.aecor.liberator.Algebra
 import io.aecor.liberator.Algebra.Aux
 import shapeless.Lazy
 
-final case class ProductKK[F[_[_]], G[_[_]], A[_]](fa: F[A], ga: G[A]) {
-  def :&:[L[_[_]]](la: L[A]): ProductKK[L, ProductKK[F, G, ?[_]], A] =
+final case class ProductKK[M[_[_]], N[_[_]], F[_]](fa: M[F], ga: N[F]) {
+  def :&:[L[_[_]]](la: L[F]): ProductKK[L, ProductKK[M, N, ?[_]], F] =
     ProductKK(la, this)
 }
 
@@ -29,6 +29,7 @@ object ProductKK {
           g.value.fromFunctionK(λ[GOp ~> A](x => fa(Coproduct.rightc(x))))
         )
     }
+
   class ProductKKIdOps[F[_[_]], A[_]](val self: F[A]) extends AnyVal {
     def :&:[G[_[_]]](ga: G[A]): ProductKK[G, F, A] = ProductKK(ga, self)
   }

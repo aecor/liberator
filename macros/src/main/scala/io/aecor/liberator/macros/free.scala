@@ -113,9 +113,9 @@ object FreeMacro {
            }
          """,
       q"""
-       implicit def freeInstance[..$abstractParams, F[_]](implicit inject: _root_.cats.free.Inject[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, $freeHelperName[F]#Out] =
-         fromFunctionK(new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $freeHelperName[F]#Out] {
-          def apply[A](op: $freeTypeName[..$abstractTypes, A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)
+       implicit def freeInstance[..$abstractParams, Alg[_], F[_]](implicit algebra: io.aecor.liberator.Algebra.Aux[$appliedBaseNameOut, Alg], inject: _root_.cats.free.Inject[Alg, F]): $typeName[..$abstractTypes, $freeHelperName[F]#Out] =
+         algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, $freeHelperName[F]#Out] {
+          def apply[A](op: Alg[A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)
          })
      """,
       q"""

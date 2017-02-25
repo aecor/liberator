@@ -22,7 +22,8 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
     "-language:existentials",
     "-language:higherKinds",
     "-language:implicitConversions",
-    "-language:experimental.macros"
+    "-language:experimental.macros",
+    "-Xlog-implicits"
   )
 )
 
