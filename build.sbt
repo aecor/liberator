@@ -2,22 +2,22 @@ import ReleaseTransformations._
 
 scalaVersion in ThisBuild := "2.11.8"
 scalaOrganization in ThisBuild := "org.typelevel"
+crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
+organization in ThisBuild := "io.aecor"
 
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
-  organization := "io.aecor",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
   ),
-  crossScalaVersions := Seq("2.11.8", "2.12.1"),
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3"),
-  scalacOptions += "-Xplugin-require:macroparadise",
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
   // temporary workaround for https://github.com/scalameta/paradise/issues/55
   sources in (Compile, doc) := Nil, // macroparadise doesn't work with scaladoc yet.
   scalacOptions ++= Seq(
+    "-Xplugin-require:macroparadise",
     "-Ypartial-unification",
     "-language:existentials",
     "-language:higherKinds",

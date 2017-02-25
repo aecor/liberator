@@ -3,19 +3,23 @@ package io.aecor.liberator.macros
 import scala.collection.immutable.Seq
 import scala.meta._
 
-class algebra extends scala.annotation.StaticAnnotation {
+class algebra(commonFields: String*) extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
+    val commonFields = this match {
+      case q"new $_(..$xs)" => xs.map { case Lit(x: String) => x }.toList
+      case _ => Nil
+    }
     defn match {
       case Term.Block(Seq(t: Defn.Trait, companion: Defn.Object)) =>
-        AlgebraMacro(t, Some(companion))
+        AlgebraMacro(commonFields, t, Some(companion))
       case t: Defn.Trait =>
-        AlgebraMacro(t, None)
+        AlgebraMacro(commonFields, t, None)
     }
   }
 }
 
 object AlgebraMacro {
-  def apply(base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
+  def apply(commonFields: List[String], base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val typeName = base.name
     val opName = s"${typeName.value}Op"
     val opTypeName = Type.Name(opName)
@@ -39,19 +43,37 @@ object AlgebraMacro {
         t"({type X[F[_]] = $typeName[..$abstractTypes, F]})#X"
       }
 
-    val abstractMethods = traitStats.map {
+    val abstractMethods = traitStats.collect {
       case m @ q"def $name[..$tps](..$params): ${someF: Type.Name}[$out]" if someF.value == theF.value =>
         m
       case m @ q"def $name: ${someF: Type.Name}[$out]" =>
         m
     }
 
+
+    val commonFieldsStat =
+      if (commonFields.nonEmpty) {
+        abstractMethods.collectFirst {
+          case q"def $name[..$tps](..$params): $_[$out]"  => params
+        }.map { params =>
+          params.collect {
+            case param"..$mods $paramname: ${Some(tpe: Type.Arg)} = $expropt" if commonFields.contains(paramname.value) =>
+              q"def ${Term.Name(paramname.value)}: ${Type.Name(tpe.toString)}"
+          }
+        }.getOrElse(Seq.empty)
+      } else {
+        Seq.empty
+      }
+
     val companionStats: Seq[Stat] = Seq(
       {
         val types = base.tparams.map(x => Type.Name(x.name.value))
         q"def apply[..${base.tparams}](implicit instance: $typeName[..$types]): $typeName[..$types] = instance"
       },
-      q"sealed abstract class $opTypeName[..$abstractParams, A] extends Product with Serializable", {
+      q"""sealed abstract class $opTypeName[..$abstractParams, A] extends Product with Serializable {
+          ..$commonFieldsStat
+         }
+       """, {
         val freeAdtLeafs = abstractMethods.map {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             q"""final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params)
