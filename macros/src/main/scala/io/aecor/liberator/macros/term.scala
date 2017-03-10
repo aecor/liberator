@@ -3,21 +3,21 @@ package io.aecor.liberator.macros
 import scala.collection.immutable.Seq
 import scala.meta._
 
-class free extends scala.annotation.StaticAnnotation {
+class term extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
     defn match {
       case Term.Block(Seq(t: Defn.Trait, companion: Defn.Object)) =>
-        FreeMacro(t, Some(companion))
+        TermMacro(t, Some(companion))
       case t: Defn.Trait =>
-        FreeMacro(t, None)
+        TermMacro(t, None)
     }
   }
 }
 
-object FreeMacro {
+object TermMacro {
   def apply(base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val baseName = base.name
-    val abstractParams = base.tparams.dropRight(1)
+    val abstractParams  = base.tparams.dropRight(1)
     val abstractTypes = abstractParams.map(_.name.value).map(Type.Name(_))
 
     val appliedBase =
@@ -41,27 +41,31 @@ object FreeMacro {
 
     val companionStats: Seq[Stat] = applyWithImplicitStats ++ Seq(
       q"""
-       implicit def freeInstance[..$abstractParams, Alg[_], F[_]](
-         implicit algebra: io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
-         inject: _root_.cats.free.Inject[Alg, F]
-       ): $baseName[..$abstractTypes, ({type Out[A] = _root_.cats.free.Free[F, A]})#Out] =
-         algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.cats.free.Free[F, A]})#Out] {
-          def apply[A](op: Alg[A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)
-         })
-     """
+         implicit def termInstance[..$abstractParams, Alg[_], M[_[_]]](
+           implicit algebra: io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
+           extract: _root_.io.aecor.liberator.Extract[M, $appliedBase]
+         ): $baseName[..$abstractTypes, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] =
+                  algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] {
+                   def apply[A](op: Alg[A]): _root_.io.aecor.liberator.Term[M, A] =
+                     new Term[M, A] {
+                      override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[A] =
+                        algebra.toFunctionK(extract(alg))(op)
+                      }
+                  })
+        """
     )
 
     val newCompanion = companion match {
       case Some(c) =>
-        val oldTemplStats = c.templ.stats.getOrElse(Nil)
-        c.copy(templ = c.templ.copy(stats = Some(companionStats ++ oldTemplStats)))
+        val existingStats = c.templ.stats.getOrElse(Nil)
+        c.copy(templ = c.templ.copy(stats = Some(companionStats ++ existingStats)))
       case None =>
         q"object ${Term.Name(baseName.value)} { ..$companionStats }"
 
     }
 
     val out = Term.Block(Seq(base, newCompanion))
-    println(s"after free = $out")
+    println(s"after term = $out")
     out
   }
 }

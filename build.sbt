@@ -22,8 +22,7 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
     "-language:existentials",
     "-language:higherKinds",
     "-language:implicitConversions",
-    "-language:experimental.macros",
-    "-Xlog-implicits"
+    "-language:experimental.macros"
   )
 )
 
@@ -49,7 +48,9 @@ lazy val tests =
         "io.monix" %% "monix-eval" % "2.2.1",
         "io.monix" %% "monix-cats" % "2.2.1",
         "io.circe" %% "circe-core" % "0.7.0",
-        "io.circe" %% "circe-generic" % "0.7.0"
+        "io.circe" %% "circe-generic" % "0.7.0",
+        "org.scalatest" %% "scalatest" % "3.0.1" % Test,
+        "org.scalactic" % "scalactic_2.11" % "3.0.1" % Test
       )
     )
     .dependsOn(macros)
