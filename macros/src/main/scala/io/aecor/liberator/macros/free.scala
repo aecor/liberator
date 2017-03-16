@@ -15,12 +15,23 @@ class free extends scala.annotation.StaticAnnotation {
 }
 
 object FreeMacro {
+
   def apply(base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val typeName = base.name
     val freeName = s"${typeName.value}Free"
     val freeTypeName = Type.Name(freeName)
     val traitStats = base.templ.stats.get
-    val (theF, abstractParams) = (base.tparams.last.name, base.tparams.dropRight(1))
+
+    val theFTypeOpt = base.tparams.lastOption
+    val isFHigherOrderType = theFTypeOpt.exists(_.tparams.length == 1)
+    assert(
+      isFHigherOrderType,
+      "The rightmost type parameter should be a higher order type, e.g. F[_] since it will be used for code generation"
+    )
+    val theFType = theFTypeOpt.get
+    val abstractParams = base.tparams.filterNot(_ == theFType)
+    val theFName = theFType.name.value
+    val typeNameAsTheF = Type.Name(theFName)
     val abstractTypes = abstractParams.map(_.name.value).map(Type.Name(_))
 
     def caseName(name: Term.Name) = s"$freeName.${name.value.capitalize}"
@@ -46,7 +57,7 @@ object FreeMacro {
 
 
     val abstractMethods = traitStats.map {
-      case m @ q"def $name[..$tps](..$params): ${someF: Type.Name}[$out]" if someF.value == theF.value =>
+      case m @ q"def $name[..$tps](..$params): ${someF: Type.Name}[$out]" if someF.value == theFName =>
         m
     }
 
@@ -74,10 +85,10 @@ object FreeMacro {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             val ctor = Ctor.Name(caseName(name))
             val args = params.map(_.name.value).map(Term.Name(_))
-            q"def $name[..$tps](..$params): F[$out] = f($ctor(..$args))"
+            q"def $name[..$tps](..$params): $typeNameAsTheF[$out] = f($ctor(..$args))"
         }
-        q"""def fromFunctionK[..$abstractParams, F[_]](f: _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, F] =
-         new ${Ctor.Name(typeName.value)}[..$abstractTypes, F] {
+        q"""def fromFunctionK[..$abstractParams, $theFType](f: _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $typeNameAsTheF]): $typeName[..$abstractTypes, $typeNameAsTheF] =
+         new ${Ctor.Name(typeName.value)}[..$abstractTypes, $typeNameAsTheF] {
           ..$methods
           }
        """
@@ -89,34 +100,34 @@ object FreeMacro {
             val ctor = Term.Name(caseName(methodName))
             p"case $ctor(..$exractArgs) => ops.$methodName(..$args)"
         }
-        q"""def toFunctionK[..$abstractParams, F[_]](ops: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] =
-         new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] {
-          def apply[A](op: $freeTypeName[..$abstractTypes, A]): F[A] =
+        q"""def toFunctionK[..$abstractParams, $theFType](ops: $typeName[..$abstractTypes, $typeNameAsTheF]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $typeNameAsTheF] =
+         new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $typeNameAsTheF] {
+          def apply[A](op: $freeTypeName[..$abstractTypes, A]): $typeNameAsTheF[A] =
             op match { ..case $cases }
          }
        """
       },
       q"""
-           type $freeHelperName[F[_]] = {
-             type Out[A] = _root_.cats.free.Free[F, A]
+           type $freeHelperName[$theFType] = {
+             type Out[A] = _root_.cats.free.Free[$typeNameAsTheF, A]
            }
          """,
       q"""
-       implicit def freeInstance[..$abstractParams, F[_]](implicit inject: _root_.cats.free.Inject[$appliedFreeNameOut, F]): $typeName[..$abstractTypes, $freeHelperName[F]#Out] =
-         fromFunctionK(new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $freeHelperName[F]#Out] {
-          def apply[A](op: $freeTypeName[..$abstractTypes, A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)
+       implicit def freeInstance[..$abstractParams, $theFType](implicit inject: _root_.cats.free.Inject[$appliedFreeNameOut, $typeNameAsTheF]): $typeName[..$abstractTypes, $freeHelperName[$typeNameAsTheF]#Out] =
+         fromFunctionK(new _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $freeHelperName[$typeNameAsTheF]#Out] {
+          def apply[A](op: $freeTypeName[..$abstractTypes, A]): _root_.cats.free.Free[$typeNameAsTheF, A] = _root_.cats.free.Free.inject(op)
          })
      """,
       q"""
            type $appliedBaseName[..$abstractParams] = {
-             type Out[F[_]] = $typeName[..$abstractTypes, F]
+             type Out[$theFType] = $typeName[..$abstractTypes, $typeNameAsTheF]
            }
          """,
       q"""
         implicit def liberatorFreeAlgebra[..$abstractParams]: io.aecor.liberator.FreeAlgebra.Aux[$appliedBaseNameOut, $appliedFreeNameOut] =
           new io.aecor.liberator.FreeAlgebra[$appliedBaseNameOut] {
             type Out[A] = $freeTypeName[..$abstractTypes, A]
-            override def apply[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, F] = ${Term
+            override def apply[$theFType](of: $typeName[..$abstractTypes, $typeNameAsTheF]): _root_.cats.arrow.FunctionK[$appliedFreeNameOut, $typeNameAsTheF] = ${Term
         .Name(typeName.value)}.toFunctionK(of)
           }
     """

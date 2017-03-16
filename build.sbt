@@ -38,7 +38,14 @@ lazy val macros =
   )
 
 lazy val tests =
-  project.settings(name := "tests", commonSettings, noPublishSettings).dependsOn(macros)
+  project
+    .settings(
+      name := "tests",
+      commonSettings,
+      noPublishSettings,
+      libraryDependencies ++= Seq("org.scalatest" %% "scalatest" % "3.0.0")
+    )
+    .dependsOn(macros)
 
 lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
 
