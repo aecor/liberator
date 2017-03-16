@@ -16,17 +16,20 @@ class free extends scala.annotation.StaticAnnotation {
 
 object FreeMacro {
 
-  def findLastHigherOrderTypeParam(params: Seq[Type.Param]): (Type.Param, Seq[Type.Param]) = {
-    val lastHigherOrderType = params.filter(_.tparams.length == 1).last
-    lastHigherOrderType -> params.filterNot(_ == lastHigherOrderType)
-  }
-
   def apply(base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val typeName = base.name
     val freeName = s"${typeName.value}Free"
     val freeTypeName = Type.Name(freeName)
     val traitStats = base.templ.stats.get
-    val (theFType, abstractParams) = findLastHigherOrderTypeParam(base.tparams)
+
+    val theFTypeOpt = base.tparams.lastOption
+    val isFHigherOrderType = theFTypeOpt.exists(_.tparams.length == 1)
+    assert(
+      isFHigherOrderType,
+      "The rightmost type parameter should be a higher order type, e.g. F[_] since it will be used for code generation"
+    )
+    val theFType = theFTypeOpt.get
+    val abstractParams = base.tparams.filterNot(_ == theFType)
     val theFName = theFType.name.value
     val typeNameAsTheF = Type.Name(theFName)
     val abstractTypes = abstractParams.map(_.name.value).map(Type.Name(_))

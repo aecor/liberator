@@ -48,4 +48,17 @@ class FreeMacroSpec1 extends FlatSpec with Matchers {
     FreeMacro(defn, None).toString() shouldEqual block.toString()
   }
 
+  it should "fail assertion if the rightmost type is not a higher order one" in {
+    val defn =
+      source"""
+        trait KVS[K, F[_], V] {
+            def getValue(key: K): F[Option[V]]
+          }
+      """.collect {
+        case t: Defn.Trait => t
+      }.head
+
+    an[AssertionError] should be thrownBy FreeMacro(defn, None)
+  }
+
 }
