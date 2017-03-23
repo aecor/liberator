@@ -10,12 +10,12 @@ class TermTests extends LiberatorSuite with TermInstances {
   trait M[F[_]]
   implicit def mf: M[Id] = new M[Id] {}
   checkAll("Term[M, Int]", GroupLaws[Term[M, Int]].monoid)
-  checkAll("Free[Option, ?]", MonadTests[Term[M, ?]].monad[Int, Int, Int])
-  checkAll("Monad[Free[Option, ?]]", SerializableTests.serializable(Monad[Term[M, ?]]))
+  checkAll("Term[M, ?]", MonadTests[Term[M, ?]].monad[Int, Int, Int])
+  checkAll("Monad[Term[M, ?]]", SerializableTests.serializable(Monad[Term[M, ?]]))
 }
 
 sealed trait TermInstances {
-  private def freeGen[M[_[_]], A](maxDepth: Int)(implicit A: Arbitrary[A]): Gen[Term[M, A]] = {
+  private def termGen[M[_[_]], A](maxDepth: Int)(implicit A: Arbitrary[A]): Gen[Term[M, A]] = {
     val noFlatMapped =
       Gen.oneOf(A.arbitrary.map(Term.pure[M, A]), A.arbitrary.map(Term.pure[M, A]))
 
