@@ -45,13 +45,13 @@ object TermMacro {
            implicit algebra: io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
            extract: _root_.io.aecor.liberator.Extract[M, $appliedBase]
          ): $baseName[..$abstractTypes, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] =
-                  algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] {
-                   def apply[A](op: Alg[A]): _root_.io.aecor.liberator.Term[M, A] =
-                     new Term[M, A] {
-                      override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[A] =
-                        algebra.toFunctionK(extract(alg))(op)
-                      }
-                  })
+          algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] {
+            def apply[A](op: Alg[A]): _root_.io.aecor.liberator.Term[M, A] =
+              _root_.io.aecor.liberator.Term.lift(new _root_.io.aecor.liberator.Term.Invocation[M, A] {
+                override def apply[F[_]](mf: M[F]): F[A] =
+                  algebra.toFunctionK(extract(mf))(op)
+              })
+          })
         """
     )
 

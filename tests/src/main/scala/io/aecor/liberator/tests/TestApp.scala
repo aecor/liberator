@@ -5,7 +5,7 @@ import cats.free.{ Free, Inject }
 import cats.implicits._
 import cats.{ Applicative, Eval, Monad, ~> }
 import io.aecor.liberator.Term
-import io.aecor.liberator.Term.{ Effect, Invoke }
+import io.aecor.liberator.Term.{ Effect, Invocation }
 import io.aecor.liberator.data.ProductKK
 import io.aecor.liberator.macros._
 import io.aecor.liberator.syntax._
@@ -32,14 +32,10 @@ trait Logging[F[_]] {
 }
 object Logging
 
-@algebra
+@algebra('k)
 trait KVS[F[_]] {
   def set(k: String): F[Unit]
 }
-
-@foo
-@bar
-trait Snafu
 
 @term
 @free
@@ -185,16 +181,10 @@ object TestApp {
         .transpile(fileIO) :&:
         ConsoleUserInteraction[AppF]
 
-    val x = Effect(new Invoke[UserInteraction, Unit] {
-      override def apply[F[_]](mf: UserInteraction[F]): F[Unit] = mf.writeLn("foo")
-    })
-
     def out =
       Eval.later(termProgram(interpreters)).flatMap { _ =>
         Eval.later(freeProgram.foldMap(interpreters.asFunctionK))
       }
-
-    println(Snafu.foo)
 
     def result = out.value.run(AppState(Map.empty, Map.empty))
 

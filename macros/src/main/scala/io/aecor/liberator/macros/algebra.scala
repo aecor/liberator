@@ -3,56 +3,10 @@ package io.aecor.liberator.macros
 import scala.collection.immutable.Seq
 import scala.meta._
 
-
-
-class foo extends scala.annotation.StaticAnnotation {
-  inline def apply(defn: Any): Any = meta {
-    val (base, companion) = defn match {
-      case Term.Block(Seq(t: Defn.Trait, companion: Defn.Object)) =>
-        (t, Some(companion))
-      case t: Defn.Trait =>
-        (t, None)
-    }
-    val companionStats = Seq(
-      q"""def foo: String = "foo""""
-    )
-    val newCompanion = companion match {
-      case Some(c) =>
-        c.copy(templ = c.templ.copy(stats = Some(companionStats ++ c.templ.stats.getOrElse(Nil))))
-      case None =>
-        q"object ${Term.Name(base.name.value)} { ..$companionStats }"
-
-    }
-    Term.Block(Seq(base, newCompanion))
-  }
-}
-
-class bar extends scala.annotation.StaticAnnotation {
-  inline def apply(defn: Any): Any = meta {
-    val (base, companion) = defn match {
-      case Term.Block(Seq(t: Defn.Trait, companion: Defn.Object)) =>
-        (t, Some(companion))
-      case t: Defn.Trait =>
-        (t, None)
-    }
-    val companionStats = Seq(
-      q"""def bar: String = "bar""""
-    )
-    val newCompanion = companion match {
-      case Some(c) =>
-        c.copy(templ = c.templ.copy(stats = Some(companionStats ++ c.templ.stats.getOrElse(Nil))))
-      case None =>
-        q"object ${Term.Name(base.name.value)} { ..$companionStats }"
-
-    }
-    Term.Block(Seq(base, newCompanion))
-  }
-}
-
-class algebra(commonFields: String*) extends scala.annotation.StaticAnnotation {
+class algebra(commonFields: scala.Symbol*) extends scala.annotation.StaticAnnotation {
   inline def apply(defn: Any): Any = meta {
     val commonFields = this match {
-      case q"new $_(..$xs)" => xs.map { case Lit(x: String) => x }.toList
+      case q"new $_(..$xs)" => xs.map { case ctor"$_(${Lit(x: String)})" => x }.toList
       case _ => Nil
     }
     defn match {

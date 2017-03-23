@@ -2,16 +2,17 @@ package io.aecor.liberator
 
 import cats.kernel.Monoid
 import cats.{ Apply, CoflatMap, Monad, ~> }
-import io.aecor.liberator.Term.{ FlatMap, Pure }
+import io.aecor.liberator.Term.{ Ap, Effect, FlatMap, Invocation, Pure }
 
 import scala.annotation.tailrec
 
-trait Term[M[_[_]], A] { outer =>
-  def apply[F[_]](ops: M[F])(implicit F: Monad[F]): F[A] =
+sealed abstract class Term[M[_[_]], A] { outer =>
+  final def apply[F[_]](ops: M[F])(implicit F: Monad[F]): F[A] =
     F.tailRecM(this)(_.step match {
       case Pure(a) => F.pure(Right(a))
       case FlatMap(c, g) => F.map(c(ops))(cc => Left(g(cc)))
-      case other => F.map(other(ops))(cc => Right(cc))
+      case Effect(invoke) => F.map(invoke(ops))(cc => Right(cc))
+      case Ap(fa, fab) => F.map(F.ap(fab(ops))(fa(ops)))(cc => Right(cc))
     })
 
   @tailrec
@@ -25,27 +26,32 @@ trait Term[M[_[_]], A] { outer =>
 
   final def map[B](f: A => B): Term[M, B] = flatMap(a => Term.pure(f(a)))
 
-  final def contramapK[G[_[_]]](f: FunctionKK[G, M]): Term[G, A] = new Term[G, A] {
-    override def apply[F[_]](ops: G[F])(implicit F: Monad[F]): F[A] =
-      outer(f(ops))
+  final def contramapK[G[_[_]]](f: FunctionKK[G, M]): Term[G, A] = this match {
+    case FlatMap(fa, fm) => fa.contramapK(f).flatMap(a => fm(a).contramapK(f))
+    case Pure(a) => Pure(a)
+    case Effect(value) =>
+      Effect(new Invocation[G, A] {
+        override def apply[F[_]](mf: G[F]): F[A] = value(f(mf))
+      })
+    case Ap(fa, fab) => Ap(fa.contramapK(f), fab.contramapK(f))
   }
 
-  final def ap[B](fab: Term[M, A => B]): Term[M, B] = new Term[M, B] {
-    override def apply[F[_]](ops: M[F])(implicit F: Monad[F]): F[B] =
-      F.ap(fab(ops))(outer(ops))
-  }
+  final def ap[B](fab: Term[M, (A => B)]): Term[M, B] = Term.Ap(this, fab)
 }
 
 object Term extends TermInstances {
-  case class FlatMap[M[_[_]], A, B](fa: Term[M, A], f: A => Term[M, B]) extends Term[M, B]
-  case class Pure[M[_[_]], A](a: A) extends Term[M, A]
-  case class Effect[M[_[_]], A](value: Invoke[M, A]) extends Term[M, A]
+  private case class FlatMap[M[_[_]], A, B](fa: Term[M, A], f: A => Term[M, B]) extends Term[M, B]
+  private case class Pure[M[_[_]], A](a: A) extends Term[M, A]
+  private case class Effect[M[_[_]], A](value: Invocation[M, A]) extends Term[M, A]
+  private case class Ap[M[_[_]], A, B](fa: Term[M, A], tb: Term[M, A => B]) extends Term[M, B]
 
-  trait Invoke[M[_[_]], A] {
+  trait Invocation[M[_[_]], A] {
     def apply[F[_]](mf: M[F]): F[A]
   }
 
+  def lift[M[_[_]], A](invocation: Invocation[M, A]): Term[M, A] = Effect(invocation)
   def pure[M[_[_]], A](a: A): Term[M, A] = Pure(a)
+
   def transpile[M[_[_]], N[_[_]], F[_]: Monad](mtn: M[Term[N, ?]],
                                                nf: N[F])(implicit ev: Algebra[M]): M[F] =
     ev.mapK(mtn)(λ[Term[N, ?] ~> F](_(nf)))
@@ -95,9 +101,9 @@ private[liberator] trait TermInstances {
                                              algebra: Algebra[N]): N[Term[M, ?]] =
     algebra.fromFunctionK(new (algebra.Out ~> Term[M, ?]) {
       override def apply[A](fa: algebra.Out[A]): Term[M, A] =
-        new Term[M, A] {
-          override def apply[F[_]](alg: M[F])(implicit F: Monad[F]): F[A] =
-            algebra.toFunctionK(extract(alg))(fa)
-        }
+        Term.lift(new Invocation[M, A] {
+          override def apply[F[_]](mf: M[F]): F[A] =
+            algebra.toFunctionK(extract(mf))(fa)
+        })
     })
 }
