@@ -99,7 +99,8 @@ Given all above you can write your programs like this
 
 ```scala
 import io.aecor.liberator.macros.free
-import io.aecor.liberator.{ FreeAlgebra, ProductKK }
+import io.aecor.liberator.data.ProductKK
+import io.aecor.liberator.Algebra
 
 @free
 @algebra
