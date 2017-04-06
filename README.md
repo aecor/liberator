@@ -23,7 +23,11 @@ addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersio
 
 ### Usage example
 
+The `?` syntax for type lambdas is provided by [kind-projector](https://github.com/non/kind-projector) compiler plugin.
+
 ```scala
+import io.aecor.liberator.macros.free
+
 @free
 @algebra
 trait KeyValueStore[F[_]] {
@@ -94,6 +98,9 @@ object KeyValueStore {
 Given all above you can write your programs like this
 
 ```scala
+import io.aecor.liberator.macros.free
+import io.aecor.liberator.{ FreeAlgebra, ProductKK }
+
 @free
 @algebra
 trait Logging[F[_]] {
