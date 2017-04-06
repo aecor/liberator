@@ -27,21 +27,21 @@ sealed trait TermInstances {
         freeDepth <- nextDepth
         f <- Arbitrary
               .arbFunction1[A, Term[M, A]](
-                Arbitrary(freeGen[M, A](fDepth)),
+                Arbitrary(termGen[M, A](fDepth)),
                 Cogen[Unit].contramap(_ => ())
               )
               .arbitrary
-        freeFA <- freeGen[M, A](freeDepth)
+        freeFA <- termGen[M, A](freeDepth)
       } yield freeFA.flatMap(f)
 
     if (maxDepth <= 1) noFlatMapped
     else Gen.oneOf(noFlatMapped, withFlatMapped)
   }
 
-  implicit def freeArbitrary[M[_[_]], A](implicit A: Arbitrary[A]): Arbitrary[Term[M, A]] =
-    Arbitrary(freeGen[M, A](4))
+  implicit def termArbitrary[M[_[_]], A](implicit A: Arbitrary[A]): Arbitrary[Term[M, A]] =
+    Arbitrary(termGen[M, A](4))
 
-  implicit def freeEq[M[_[_]], A, F[_]](implicit mf: M[F],
+  implicit def termEq[M[_[_]], A, F[_]](implicit mf: M[F],
                                         eqA: Eq[F[A]],
                                         F: Monad[F]): Eq[Term[M, A]] =
     new Eq[Term[M, A]] {
