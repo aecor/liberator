@@ -25,11 +25,18 @@ addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersio
 
 ```scala
 @free
+@algebra
 trait KeyValueStore[F[_]] {
   def setValue(key: String, value: String): F[Unit]
 
   def getValue(key: String): F[Option[String]]
 }
+
+/*
+ * We need an empty companion object as a temporary workaround
+ * for https://github.com/scalameta/paradise/issues/176
+ */
+object KeyValueStore
 ```
 
 The code above will be expanded at compile time to this (desanitized for brevity):
@@ -41,13 +48,12 @@ trait KeyValueStore[F[_]] {
 object KeyValueStore {
   // A helper method to get an instance of KeyValueStore[F]
   def apply[F[_]](implicit instance: KeyValueStore[F]): KeyValueStore[F] = instance
-  
-  
+
   // A free AST
-  sealed abstract class KeyValueStoreFree[A] extends Product with Serializable
-  object KeyValueStoreFree {
-    final case class SetValue(key: String, value: String) extends KeyValueStoreFree[Unit]
-    final case class GetValue(key: String) extends KeyValueStoreFree[Option[String]]
+  sealed abstract class KeyValueStoreOp[A] extends Product with Serializable
+  object KeyValueStoreOp {
+    final case class SetValue(key: String, value: String) extends KeyValueStoreOp[Unit]
+    final case class GetValue(key: String) extends KeyValueStoreOp[Option[String]]
   }
   
   // A function to convert a natural transformation to your trait
@@ -69,17 +75,16 @@ object KeyValueStore {
         case KeyValueStoreFree.GetValue(key) => ops.getValue(key)
       }
     }
-    
-  type FreeHelper1[F[_]] = { type Out[A] = Free[F, A] } //workaround of a bug in scala.meta
-  implicit def freeInstance[F[_]](implicit inject: Inject[KeyValueStoreFree, F]): KeyValueStore[FreeHelper1[F]#Out] = 
-    fromFunctionK(new (KeyValueStoreFree ~> FreeHelper1[F]#Out) { 
+
+  implicit def freeInstance[F[_]](implicit inject: Inject[KeyValueStoreOp, F]): KeyValueStore[Free[F, A]] =
+    fromFunctionK(new (KeyValueStoreFree ~> Free[F, A]) {
       def apply[A](op: KeyValueStoreFree[A]): Free[F, A] = Free.inject(op) 
     })
     
-  implicit val freeAlgebra: FreeAlgebra.Aux[KeyValueStore, KeyValueStoreFree] = 
+  implicit val freeAlgebra: Algebra.Aux[KeyValueStore, KeyValueStoreOp] =
     new FreeAlgebra[KeyValueStore] {
-      type Out[A] = KeyValueStoreFree[A]
-      override def apply[F[_]](of: KeyValueStore[F]): KeyValueStoreFree ~> F = 
+      type Out[A] = KeyValueStoreOp[A]
+      override def apply[F[_]](of: KeyValueStore[F]): KeyValueStoreOp ~> F =
         KeyValueStore.toFunctionK(of)
     }
 }
@@ -90,9 +95,12 @@ Given all above you can write your programs like this
 
 ```scala
 @free
+@algebra
 trait Logging[F[_]] {
   def debug(s: String): F[Unit]
 }
+
+object Logging
 
 def program[F[_]: Monad: KeyValueStore: Logging](key: String): F[String] =
     for {
@@ -103,11 +111,11 @@ def program[F[_]: Monad: KeyValueStore: Logging](key: String): F[String] =
       _ <- Logging[F].debug(s"Update value to $newValue")
     } yield newValue    
 
-val freeAlgebra = FreeAlgebra[ProductKK[KeyValueStore, Logging, ?[_]]]
+val algebra = Algebra[ProductKK[KeyValueStore, Logging, ?[_]]]
 
 // Notice that you don't have to know anything about presence of AST
 
-val freeProgram = program[Free[freeAlgebra.Out, ?]]("key")
+val freeProgram = program[Free[algebra.Out, ?]]("key")
 
 val taskKeyValueStore: KeyValueStore[Task] = ???
 
