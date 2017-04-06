@@ -1,11 +1,10 @@
 import ReleaseTransformations._
 
-scalaVersion in ThisBuild := "2.11.8"
-scalaOrganization in ThisBuild := "org.typelevel"
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.1")
-organization in ThisBuild := "io.aecor"
-
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
+  scalaVersion := "2.11.8",
+  scalaOrganization := "org.typelevel",
+  crossScalaVersions := Seq("2.11.8", "2.12.1"),
+  organization := "io.aecor",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
@@ -25,6 +24,9 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
     "-language:experimental.macros"
   )
 )
+
+lazy val liberator =
+  project.in(file(".")).settings(commonSettings).aggregate(macros, tests)
 
 lazy val macros =
   project.settings(
