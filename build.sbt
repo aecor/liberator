@@ -1,22 +1,22 @@
 import ReleaseTransformations._
 
-scalaVersion in ThisBuild := "2.11.8"
-scalaOrganization in ThisBuild := "org.typelevel"
-
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
+  scalaVersion := "2.11.8",
+  scalaOrganization := "org.typelevel",
+  crossScalaVersions := Seq("2.11.8", "2.12.1"),
   organization := "io.aecor",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
   ),
-  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersion.full),
+  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3"),
-  scalacOptions += "-Xplugin-require:macroparadise",
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
   // temporary workaround for https://github.com/scalameta/paradise/issues/55
   sources in (Compile, doc) := Nil, // macroparadise doesn't work with scaladoc yet.
   scalacOptions ++= Seq(
+    "-Xplugin-require:macroparadise",
     "-Ypartial-unification",
     "-language:existentials",
     "-language:higherKinds",
@@ -25,20 +25,37 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
   )
 )
 
+lazy val liberator =
+  project.in(file(".")).settings(commonSettings).aggregate(macros, tests)
+
 lazy val macros =
   project.settings(
     name := "liberator",
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.4.0",
+      "org.scalameta" %% "scalameta" % "1.6.0",
       "com.chuusai" %% "shapeless" % "2.3.2",
-      "org.typelevel" %% "cats" % "0.8.1"
+      "org.typelevel" %% "cats" % "0.9.0"
     )
   )
 
 lazy val tests =
-  project.settings(name := "tests", commonSettings, noPublishSettings).dependsOn(macros)
+  project
+    .settings(
+      name := "tests",
+      commonSettings,
+      noPublishSettings,
+      libraryDependencies ++= Seq(
+        "io.monix" %% "monix-eval" % "2.2.1",
+        "io.monix" %% "monix-cats" % "2.2.1",
+        "io.circe" %% "circe-core" % "0.7.0",
+        "io.circe" %% "circe-generic" % "0.7.0",
+        "org.scalatest" %% "scalatest" % "3.0.1" % Test,
+        "org.scalactic" % "scalactic_2.11" % "3.0.1" % Test
+      )
+    )
+    .dependsOn(macros)
 
 lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
 
