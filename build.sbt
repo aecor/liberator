@@ -60,10 +60,10 @@ lazy val tests =
 lazy val noPublishSettings = Seq(publish := (), publishLocal := (), publishArtifact := false)
 
 lazy val publishSettings = Seq(
+  releaseCrossBuild := true,
   releaseCommitMessage := s"Set version to ${if (releaseUseGlobalVersion.value) (version in ThisBuild).value
   else version.value}",
   releaseIgnoreUntrackedFiles := true,
-  releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   homepage := Some(url("https://github.com/aecor/liberator")),
   licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
