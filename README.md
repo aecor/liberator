@@ -10,15 +10,15 @@ It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/
 
 ### Using Liberator
 
-Liberator supports only Scala 2.11 due to missing support of 2.12 from scala.meta paradise (subject to change very soon)
+Liberator is build for Scala 2.11 and 2.12.
 
 To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaOrganization := "org.typelevel"
-libraryDependencies += "io.aecor" %% "liberator" % "0.2.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.4.1"
 scalacOptions += "-Ypartial-unification"
-addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-beta4" cross CrossVersion.full)
+addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full)
 ```
 
 ### Usage example

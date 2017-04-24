@@ -4,14 +4,14 @@ import cats.~>
 
 /**
   *
-  * `Algebra.Aux[F, Out]` is an isomorphism between `F[A]` and `Out ~> A`
+  * `Algebra.Aux[M, Out]` is an isomorphism between `M[A]` and `Out ~> A`
   *
   */
-trait Algebra[F[_[_]]] {
+trait Algebra[M[_[_]]] {
   type Out[_]
-  def toFunctionK[A[_]](fa: F[A]): Out ~> A
-  def fromFunctionK[A[_]](nat: Out ~> A): F[A]
-  final def mapK[A[_], B[_]](fa: F[A])(f: A ~> B): F[B] =
+  def toFunctionK[F[_]](fa: M[F]): Out ~> F
+  def fromFunctionK[F[_]](nat: Out ~> F): M[F]
+  final def mapK[F[_], G[_]](fa: M[F])(f: F ~> G): M[G] =
     fromFunctionK(toFunctionK(fa).andThen(f))
 }
 
