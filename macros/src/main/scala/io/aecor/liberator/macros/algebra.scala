@@ -135,8 +135,6 @@ object AlgebraMacro {
 
     }
 
-    val out = Term.Block(Seq(base, newCompanion))
-    println(s"after algebra = $out")
-    out
+    Term.Block(Seq(base, newCompanion))
   }
 }

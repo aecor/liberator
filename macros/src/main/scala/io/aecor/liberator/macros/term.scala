@@ -64,8 +64,6 @@ object TermMacro {
 
     }
 
-    val out = Term.Block(Seq(base, newCompanion))
-    println(s"after term = $out")
-    out
+    Term.Block(Seq(base, newCompanion))
   }
 }

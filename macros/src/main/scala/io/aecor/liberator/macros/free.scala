@@ -60,8 +60,6 @@ object FreeMacro {
 
     }
 
-    val out = Term.Block(Seq(base, newCompanion))
-    println(s"after free = $out")
-    out
+    Term.Block(Seq(base, newCompanion))
   }
 }
