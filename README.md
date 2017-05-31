@@ -15,10 +15,19 @@ Liberator is build for Scala 2.11 and 2.12.
 To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
-scalaOrganization := "org.typelevel"
-libraryDependencies += "io.aecor" %% "liberator" % "0.4.2"
+scalaVersion := "2.11.11"
+libraryDependencies += "io.aecor" %% "liberator" % "0.4.3"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full)
+```
+
+or
+
+```scala
+scalaVersion := "2.12.2"
+libraryDependencies += "io.aecor" %% "liberator" % "0.4.3"
+scalacOptions += "-Ypartial-unification"
+addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full)
 ```
 
 ### Usage example
