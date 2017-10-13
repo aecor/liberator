@@ -52,7 +52,7 @@ lazy val tests =
         "io.circe" %% "circe-core" % "0.7.0",
         "io.circe" %% "circe-generic" % "0.7.0",
         "org.scalatest" %% "scalatest" % "3.0.1" % Test,
-        "org.scalactic" % "scalactic_2.11" % "3.0.1" % Test
+        "org.scalactic" %% "scalactic" % "3.0.1" % Test
       )
     )
     .dependsOn(macros)
