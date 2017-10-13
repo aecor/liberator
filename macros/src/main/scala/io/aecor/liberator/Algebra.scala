@@ -11,8 +11,6 @@ trait Algebra[M[_[_]]] {
   type Out[_]
   def toFunctionK[F[_]](fa: M[F]): Out ~> F
   def fromFunctionK[F[_]](nat: Out ~> F): M[F]
-  final def mapK[F[_], G[_]](fa: M[F])(f: F ~> G): M[G] =
-    fromFunctionK(toFunctionK(fa).andThen(f))
 }
 
 object Algebra {
@@ -23,7 +21,7 @@ object Algebra {
     type Out[A] = Out0[A]
   }
 
-  object ops extends AlgebraSyntax
+  object syntax extends AlgebraSyntax
 
   trait AlgebraSyntax {
     implicit def toAlgebraOps[F[_[_]], A[_]](fa: F[A]): OpsSyntaxIdOps[F, A] =
@@ -31,9 +29,6 @@ object Algebra {
   }
 
   final class OpsSyntaxIdOps[F[_[_]], A[_]](val self: F[A]) extends AnyVal {
-    def mapK[B[_]](f: A ~> B)(implicit algebra: Algebra[F]): F[B] =
-      algebra.mapK(self)(f)
-
     def asFunctionK(implicit algebra: Algebra[F]): algebra.Out ~> A =
       algebra.toFunctionK(self)
   }

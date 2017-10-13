@@ -42,7 +42,7 @@ object TermMacro {
     val companionStats: Seq[Stat] = applyWithImplicitStats ++ Seq(
       q"""
          implicit def termInstance[..$abstractParams, Alg[_], M[_[_]]](
-           implicit algebra: io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
+           implicit algebra: _root_.io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
            extract: _root_.io.aecor.liberator.Extract[M, $appliedBase]
          ): $baseName[..$abstractTypes, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] =
           algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.io.aecor.liberator.Term[M, A]})#Out] {

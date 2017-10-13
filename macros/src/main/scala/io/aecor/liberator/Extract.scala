@@ -2,7 +2,7 @@ package io.aecor.liberator
 
 import io.aecor.liberator.data.ProductKK
 
-sealed trait Extract[M[_[_]], N[_[_]]] {
+sealed trait Extract[M[_[_]], N[_[_]]] extends FunctionKK[M, N] {
   def apply[F[_]](fa: M[F]): N[F]
 }
 

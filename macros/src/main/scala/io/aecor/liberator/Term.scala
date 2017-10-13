@@ -9,17 +9,17 @@ import scala.annotation.tailrec
 sealed abstract class Term[M[_[_]], A] { outer =>
   final def apply[F[_]](ops: M[F])(implicit F: Monad[F]): F[A] =
     F.tailRecM(this)(_.step match {
-      case Pure(a) => F.pure(Right(a))
-      case FlatMap(c, g) => F.map(c(ops))(cc => Left(g(cc)))
+      case Pure(a)        => F.pure(Right(a))
+      case FlatMap(c, g)  => F.map(c(ops))(cc => Left(g(cc)))
       case Effect(invoke) => F.map(invoke(ops))(cc => Right(cc))
-      case Ap(fa, fab) => F.map(F.ap(fab(ops))(fa(ops)))(cc => Right(cc))
+      case Ap(fa, fab)    => F.map(F.ap(fab(ops))(fa(ops)))(cc => Right(cc))
     })
 
   @tailrec
   final def step: Term[M, A] = this match {
     case FlatMap(FlatMap(c, f), g) => c.flatMap(cc => f(cc).flatMap(g)).step
-    case FlatMap(Pure(a), f) => f(a).step
-    case x => x
+    case FlatMap(Pure(a), f)       => f(a).step
+    case x                         => x
   }
 
   final def flatMap[B](f: A => Term[M, B]): Term[M, B] = Term.FlatMap(this, f)
@@ -28,7 +28,7 @@ sealed abstract class Term[M[_[_]], A] { outer =>
 
   final def contramapK[G[_[_]]](f: FunctionKK[G, M]): Term[G, A] = this match {
     case FlatMap(fa, fm) => fa.contramapK(f).flatMap(a => fm(a).contramapK(f))
-    case Pure(a) => Pure(a)
+    case Pure(a)         => Pure(a)
     case Effect(value) =>
       Effect(new Invocation[G, A] {
         override def apply[F[_]](mf: G[F]): F[A] = value(f(mf))
@@ -52,19 +52,21 @@ object Term extends TermInstances {
   def lift[M[_[_]], A](invocation: Invocation[M, A]): Term[M, A] = Effect(invocation)
   def pure[M[_[_]], A](a: A): Term[M, A] = Pure(a)
 
-  def transpile[M[_[_]], N[_[_]], F[_]: Monad](mtn: M[Term[N, ?]],
-                                               nf: N[F])(implicit ev: Algebra[M]): M[F] =
-    ev.mapK(mtn)(λ[Term[N, ?] ~> F](_(nf)))
+  def transpile[M[_[_]], N[_[_]], F[_]: Monad](
+    mtn: M[Term[N, ?]],
+    nf: N[F]
+  )(implicit ev: Algebra[M], M: FunctorK[M]): M[F] =
+    M.mapK(mtn, λ[Term[N, ?] ~> F](_(nf)))
 
 }
 
 final class TermSyntaxIdOps[M[_[_]], N[_[_]]](val self: M[Term[N, ?]]) extends AnyVal {
-  def transpile[F[_]: Monad](nf: N[F])(implicit ev: Algebra[M]): M[F] =
+  def transpile[F[_]: Monad](nf: N[F])(implicit ev: Algebra[M], functorK: FunctorK[M]): M[F] =
     Term.transpile(self, nf)
 }
 
 trait TermSyntax {
-  implicit def toTermSyntaxIdOps[M[_[_]], N[_[_]]](a: M[Term[N, ?]]): TermSyntaxIdOps[M, N] =
+  final implicit def toTermSyntaxIdOps[M[_[_]], N[_[_]]](a: M[Term[N, ?]]): TermSyntaxIdOps[M, N] =
     new TermSyntaxIdOps(a)
 }
 
@@ -73,7 +75,7 @@ private[liberator] trait TermInstances {
     new Monad[Term[M, ?]] with CoflatMap[Term[M, ?]] {
       override def tailRecM[A, B](a: A)(f: (A) => Term[M, Either[A, B]]): Term[M, B] =
         f(a).flatMap {
-          case Left(x) => tailRecM(x)(f)
+          case Left(x)  => tailRecM(x)(f)
           case Right(b) => pure(b)
         }
 

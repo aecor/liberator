@@ -34,7 +34,7 @@ object ProductKK {
     def :&:[G[_[_]]](ga: G[A]): ProductKK[G, F, A] = ProductKK(ga, self)
   }
   trait ProductKKSyntax {
-    implicit def toProductKKSyntax[F[_[_]], A[_]](self: F[A]): ProductKKIdOps[F, A] =
+    @inline final implicit def toProductKKSyntax[F[_[_]], A[_]](self: F[A]): ProductKKIdOps[F, A] =
       new ProductKKIdOps(self)
   }
 }

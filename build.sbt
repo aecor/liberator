@@ -1,16 +1,16 @@
 import ReleaseTransformations._
 
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.11.11-bin-typelevel-4",
   scalaOrganization := "org.typelevel",
-  crossScalaVersions := Seq("2.11.8", "2.12.1"),
+  crossScalaVersions := Seq("2.11.11-bin-typelevel-4", "2.12.3-bin-typelevel-4"),
   organization := "io.aecor",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
   ),
-  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full),
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.3"),
+  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.patch),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4" cross CrossVersion.binary),
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
   // temporary workaround for https://github.com/scalameta/paradise/issues/55
@@ -34,7 +34,7 @@ lazy val macros =
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.6.0",
+      "org.scalameta" %% "scalameta" % "1.8.0",
       "com.chuusai" %% "shapeless" % "2.3.2",
       "org.typelevel" %% "cats" % "0.9.0"
     )
@@ -52,7 +52,7 @@ lazy val tests =
         "io.circe" %% "circe-core" % "0.7.0",
         "io.circe" %% "circe-generic" % "0.7.0",
         "org.scalatest" %% "scalatest" % "3.0.1" % Test,
-        "org.scalactic" % "scalactic_2.11" % "3.0.1" % Test
+        "org.scalactic" %% "scalactic" % "3.0.1" % Test
       )
     )
     .dependsOn(macros)
