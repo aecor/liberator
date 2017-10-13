@@ -143,5 +143,25 @@ val task = freeProgram.foldMap(freeAlgebra(ProductKK(taskKeyValueStore, taskLogg
 task.runAsync // the only side-effecting call
 ```
 
+### FunctorK
+
+Liberator provides `@functorK` annotation.  
+This macros generates [`FunctorK`](https://github.com/aecor/liberator/blob/master/macros/src/main/scala/io/aecor/liberator/FunctorK.scala) instance.  
+Use case:
+```scala
+import io.aecor.liberator.macros.functorK
+import io.aecor.liberator.syntax._
+
+@functorK
+trait Logging[F[_]] {
+  def debug(s: String): F[Unit]
+}
+
+val fLogging: Logging[F] = ...
+val f2g: F ~> G = ...
+val gLogging: Logging[G] = fLogging.mapK(f2g) 
+
+```
+
 ### Known issues
 - There is a possibility of type name collision if base trait contains abstract type named `F` and it is not last unary type constructor, e.g. `trait Foo[F, A, B[_]]`

@@ -14,6 +14,8 @@ class algebra(commonFields: scala.Symbol*) extends scala.annotation.StaticAnnota
         AlgebraMacro(commonFields, t, Some(companion))
       case t: Defn.Trait =>
         AlgebraMacro(commonFields, t, None)
+      case other =>
+        defn
     }
   }
 }
@@ -96,7 +98,8 @@ object AlgebraMacro {
           ..$methods
           }
        """
-      }, {
+      },
+      {
         val cases = abstractMethods.map {
           case q"def $methodName[..$tps](..$params): $theF[$out]" =>
             val args = params.map(_.name.value).map(Term.Name(_))
@@ -115,8 +118,8 @@ object AlgebraMacro {
        """
       },
       q"""
-        implicit def liberatorAlgebraInstance[..$abstractParams]: io.aecor.liberator.Algebra.Aux[$unifiedBase, $unifiedOp] =
-          new io.aecor.liberator.Algebra[$unifiedBase] {
+        implicit def liberatorAlgebraInstance[..$abstractParams]: _root_.io.aecor.liberator.Algebra.Aux[$unifiedBase, $unifiedOp] =
+          new _root_.io.aecor.liberator.Algebra[$unifiedBase] {
             type Out[A] = $opTypeName[..$abstractTypes, A]
             override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$unifiedOp, F] =
               ${Term.Name(typeName.value)}.toFunctionK(of)

@@ -15,6 +15,7 @@ import scala.io.StdIn
 @term
 @free
 @algebra
+@functorK
 trait KeyValueStore[K, V, F[_]] {
   def setValue(key: K, value: V): F[Unit]
 
@@ -25,6 +26,7 @@ object KeyValueStore
 @term
 @free
 @algebra
+@functorK
 trait Logging[F[_]] {
   def debug(value: String): F[Unit]
 
@@ -32,14 +34,10 @@ trait Logging[F[_]] {
 }
 object Logging
 
-@algebra('k)
-trait KVS[F[_]] {
-  def set(k: String): F[Unit]
-}
-
 @term
 @free
 @algebra
+@functorK
 trait UserInteraction[F[_]] {
   def readLn(prompt: String): F[String]
   def writeLn(s: String): F[Unit]
@@ -49,6 +47,7 @@ object UserInteraction
 @term
 @free
 @algebra
+@functorK
 trait FileIO[F[_]] {
   def appendLine(filePath: String, line: String): F[Unit]
 }
