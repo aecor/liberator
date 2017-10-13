@@ -4,19 +4,19 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/aecor/liberator)
 [![Join the chat at https://gitter.im/aecor/liberator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aecor/liberator)
 
-The goal of this library is to generate everything you need to create programs using Free monad, without boilerplate.
+The goal of this library is to generate everything you need to create programs using Free monad or tagless algebras, without boilerplate.
 
 It is built using [scala.meta](http://scalameta.org), [Cats](https://github.com/typelevel/cats) and a bit of [Shapeless](https://github.com/milessabin/shapeless).
 
 ### Using Liberator
 
-Liberator is build for Scala 2.11 and 2.12.
+Liberator is built for Scala 2.11 and 2.12.
 
 To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaVersion := "2.11.11"
-libraryDependencies += "io.aecor" %% "liberator" % "0.4.3"
+libraryDependencies += "io.aecor" %% "liberator" % "0.5.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full)
 ```
@@ -25,7 +25,7 @@ or
 
 ```scala
 scalaVersion := "2.12.2"
-libraryDependencies += "io.aecor" %% "liberator" % "0.4.3"
+libraryDependencies += "io.aecor" %% "liberator" % "0.5.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full)
 ```
