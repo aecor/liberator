@@ -90,9 +90,7 @@ private[liberator] trait TermInstances {
         pure(f(fa))
     }
 
-  implicit def catsMonoidInstanceForTerm[M[_[_]], A: Group](
-    implicit A: Group[A]
-  ): Group[Term[M, A]] =
+  implicit def catsGroupInstanceForTerm[M[_[_]], A](implicit A: Group[A]): Group[Term[M, A]] =
     new Group[Term[M, A]] {
       override def empty: Term[M, A] = Term.pure(A.empty)
 
@@ -105,9 +103,9 @@ private[liberator] trait TermInstances {
   implicit def liftGeneric[M[_[_]], N[_[_]]](implicit extract: Extract[M, N],
                                              algebra: Algebra[N]): N[Term[M, ?]] =
     algebra.fromFunctionK(new (algebra.Out ~> Term[M, ?]) {
-      override def apply[A](fa: algebra.Out[A]): Term[M, A] =
+      final override def apply[A](fa: algebra.Out[A]): Term[M, A] =
         Term.lift(new Invocation[M, A] {
-          override def apply[F[_]](mf: M[F]): F[A] =
+          final override def apply[F[_]](mf: M[F]): F[A] =
             algebra.toFunctionK(extract(mf))(fa)
         })
     })
