@@ -1,16 +1,25 @@
 import ReleaseTransformations._
 
+lazy val scala211Version = "2.11.11-bin-typelevel-4"
+lazy val scala212Version = "2.12.3-bin-typelevel-4"
+lazy val scalametaParadiseVersion = "3.0.0-M10"
+lazy val kindProjectorVersion = "0.9.4"
+lazy val scalametaVersion = "1.8.0"
+lazy val shapelessVersion = "2.3.2"
+lazy val catsVersion = "1.0.0-RC1"
+
+
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
-  scalaVersion := "2.11.11-bin-typelevel-4",
+  scalaVersion := scala211Version,
   scalaOrganization := "org.typelevel",
-  crossScalaVersions := Seq("2.11.11-bin-typelevel-4", "2.12.3-bin-typelevel-4"),
+  crossScalaVersions := Seq(scala211Version, scala212Version),
   organization := "io.aecor",
   resolvers ++= Seq(
     Resolver.sonatypeRepo("releases"),
     Resolver.bintrayIvyRepo("scalameta", "maven")
   ),
-  addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.patch),
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4" cross CrossVersion.binary),
+  addCompilerPlugin("org.scalameta" % "paradise" % scalametaParadiseVersion cross CrossVersion.patch),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % kindProjectorVersion cross CrossVersion.binary),
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
   scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
   // temporary workaround for https://github.com/scalameta/paradise/issues/55
@@ -28,15 +37,17 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
 lazy val liberator =
   project.in(file(".")).settings(commonSettings).aggregate(macros, tests)
 
+
 lazy val macros =
   project.settings(
     name := "liberator",
     commonSettings,
     publishSettings,
     libraryDependencies ++= Seq(
-      "org.scalameta" %% "scalameta" % "1.8.0",
-      "com.chuusai" %% "shapeless" % "2.3.2",
-      "org.typelevel" %% "cats" % "0.9.0"
+      "org.scalameta" %% "scalameta" % scalametaVersion,
+      "com.chuusai" %% "shapeless" % shapelessVersion,
+      "org.typelevel" %% "cats-core" % catsVersion,
+      "org.typelevel" %% "cats-free" % catsVersion
     )
   )
 
@@ -47,12 +58,7 @@ lazy val tests =
       commonSettings,
       noPublishSettings,
       libraryDependencies ++= Seq(
-        "io.monix" %% "monix-eval" % "2.2.1",
-        "io.monix" %% "monix-cats" % "2.2.1",
-        "io.circe" %% "circe-core" % "0.7.0",
-        "io.circe" %% "circe-generic" % "0.7.0",
-        "org.scalatest" %% "scalatest" % "3.0.1" % Test,
-        "org.scalactic" %% "scalactic" % "3.0.1" % Test
+        "org.typelevel" %% "cats-testkit" % catsVersion % Test
       )
     )
     .dependsOn(macros)

@@ -43,7 +43,7 @@ object FreeMacro {
       q"""
        implicit def freeInstance[..$abstractParams, Alg[_], F[_]](
          implicit algebra: _root_.io.aecor.liberator.Algebra.Aux[$appliedBase, Alg],
-         inject: _root_.cats.free.Inject[Alg, F]
+         inject: _root_.cats.InjectK[Alg, F]
        ): $baseName[..$abstractTypes, ({type Out[A] = _root_.cats.free.Free[F, A]})#Out] =
          algebra.fromFunctionK(new _root_.cats.arrow.FunctionK[Alg, ({type Out[A] = _root_.cats.free.Free[F, A]})#Out] {
           def apply[A](op: Alg[A]): _root_.cats.free.Free[F, A] = _root_.cats.free.Free.inject(op)

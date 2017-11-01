@@ -1,6 +1,6 @@
 package io.aecor.liberator.data
 
-import cats.data.Coproduct
+import cats.data.EitherK
 import cats.~>
 import io.aecor.liberator.Algebra
 import io.aecor.liberator.Algebra.Aux
@@ -15,18 +15,16 @@ object ProductKK {
   implicit def opsInstance[F[_[_]], G[_[_]], FOp[_], GOp[_]](
     implicit f: Lazy[Aux[F, FOp]],
     g: Lazy[Aux[G, GOp]]
-  ): Aux[ProductKK[F, G, ?[_]], Coproduct[FOp, GOp, ?]] =
+  ): Aux[ProductKK[F, G, ?[_]], EitherK[FOp, GOp, ?]] =
     new Algebra[ProductKK[F, G, ?[_]]] {
-      override type Out[A] = Coproduct[FOp, GOp, A]
-      override def toFunctionK[A[_]](of: ProductKK[F, G, A]): Coproduct[FOp, GOp, ?] ~> A =
-        λ[Coproduct[FOp, GOp, ?] ~> A](
-          _.fold(f.value.toFunctionK(of.fa), g.value.toFunctionK(of.ga))
-        )
+      override type Out[A] = EitherK[FOp, GOp, A]
+      override def toFunctionK[A[_]](of: ProductKK[F, G, A]): EitherK[FOp, GOp, ?] ~> A =
+        λ[EitherK[FOp, GOp, ?] ~> A](_.fold(f.value.toFunctionK(of.fa), g.value.toFunctionK(of.ga)))
 
-      override def fromFunctionK[A[_]](fa: Coproduct[FOp, GOp, ?] ~> A): ProductKK[F, G, A] =
+      override def fromFunctionK[A[_]](fa: EitherK[FOp, GOp, ?] ~> A): ProductKK[F, G, A] =
         ProductKK(
-          f.value.fromFunctionK(λ[FOp ~> A](x => fa(Coproduct.leftc(x)))),
-          g.value.fromFunctionK(λ[GOp ~> A](x => fa(Coproduct.rightc(x))))
+          f.value.fromFunctionK(λ[FOp ~> A](x => fa(EitherK.leftc(x)))),
+          g.value.fromFunctionK(λ[GOp ~> A](x => fa(EitherK.rightc(x))))
         )
     }
 
