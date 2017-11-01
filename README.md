@@ -16,7 +16,7 @@ To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaVersion := "2.11.11"
-libraryDependencies += "io.aecor" %% "liberator" % "0.5.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.6.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full)
 ```
@@ -25,7 +25,7 @@ or
 
 ```scala
 scalaVersion := "2.12.2"
-libraryDependencies += "io.aecor" %% "liberator" % "0.5.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.6.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full)
 ```
@@ -89,13 +89,13 @@ object KeyValueStore {
       }
     }
 
-  implicit def freeInstance[F[_]](implicit inject: Inject[KeyValueStoreOp, F]): KeyValueStore[Free[F, A]] =
+  implicit def freeInstance[F[_]](implicit inject: InjectK[KeyValueStoreOp, F]): KeyValueStore[Free[F, A]] =
     fromFunctionK(new (KeyValueStoreFree ~> Free[F, A]) {
       def apply[A](op: KeyValueStoreFree[A]): Free[F, A] = Free.inject(op) 
     })
     
   implicit val freeAlgebra: Algebra.Aux[KeyValueStore, KeyValueStoreOp] =
-    new FreeAlgebra[KeyValueStore] {
+    new Algebra[KeyValueStore] {
       type Out[A] = KeyValueStoreOp[A]
       override def apply[F[_]](of: KeyValueStore[F]): KeyValueStoreOp ~> F =
         KeyValueStore.toFunctionK(of)
