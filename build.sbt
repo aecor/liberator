@@ -76,6 +76,20 @@ lazy val publishSettings = Seq(
   pomIncludeRepository := { _ =>
     false
   },
+  releaseProcess := Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    releaseStepCommandAndRemaining("+test"),
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    releaseStepCommandAndRemaining("+publishSigned"),
+    setNextVersion,
+    commitNextVersion,
+    releaseStepCommandAndRemaining("sonatypeReleaseAll"),
+    pushChanges
+  ),
   publishTo := {
     val nexus = "https://oss.sonatype.org/"
     if (isSnapshot.value)
@@ -100,21 +114,5 @@ lazy val publishSettings = Seq(
     </developers>
 )
 
-lazy val sharedReleaseProcess = Seq(
-  releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean,
-    releaseStepCommandAndRemaining("+test"),
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease,
-    releaseStepCommandAndRemaining("+publishSigned"),
-    setNextVersion,
-    commitNextVersion,
-    releaseStepCommandAndRemaining("sonatypeReleaseAll"),
-    pushChanges
-  )
-)
 
 addCommandAlias("validate", ";compile;test")
