@@ -1,7 +1,7 @@
 package io.aecor.liberator
 
 import cats.kernel.Monoid
-import cats.{ Apply, CoflatMap, Monad, ~> }
+import cats.{ Apply, CoflatMap, Group, Monad, ~> }
 import io.aecor.liberator.Term.{ Ap, Effect, FlatMap, Invocation, Pure }
 
 import scala.annotation.tailrec
@@ -90,21 +90,22 @@ private[liberator] trait TermInstances {
         pure(f(fa))
     }
 
-  implicit def catsMonoidInstanceForTerm[M[_[_]], A: Monoid]: Monoid[Term[M, A]] =
-    new Monoid[Term[M, A]] {
-      override def empty: Term[M, A] = Term.pure(Monoid[A].empty)
+  implicit def catsGroupInstanceForTerm[M[_[_]], A](implicit A: Group[A]): Group[Term[M, A]] =
+    new Group[Term[M, A]] {
+      override def empty: Term[M, A] = Term.pure(A.empty)
 
       override def combine(x: Term[M, A], y: Term[M, A]): Term[M, A] =
-        Apply[Term[M, ?]].map2(x, y)(Monoid[A].combine)
+        Apply[Term[M, ?]].map2(x, y)(A.combine)
 
+      override def inverse(a: Term[M, A]): Term[M, A] = a.map(A.inverse)
     }
 
   implicit def liftGeneric[M[_[_]], N[_[_]]](implicit extract: Extract[M, N],
                                              algebra: Algebra[N]): N[Term[M, ?]] =
     algebra.fromFunctionK(new (algebra.Out ~> Term[M, ?]) {
-      override def apply[A](fa: algebra.Out[A]): Term[M, A] =
+      final override def apply[A](fa: algebra.Out[A]): Term[M, A] =
         Term.lift(new Invocation[M, A] {
-          override def apply[F[_]](mf: M[F]): F[A] =
+          final override def apply[F[_]](mf: M[F]): F[A] =
             algebra.toFunctionK(extract(mf))(fa)
         })
     })

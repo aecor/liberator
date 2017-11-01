@@ -1,15 +1,15 @@
 package io.aecor.liberator.tests
 
-import cats.kernel.laws.GroupLaws
+import cats.kernel.laws.discipline.GroupTests
 import cats.laws.discipline.{ MonadTests, SerializableTests }
-import cats.{ Eq, Eval, Id, Monad }
+import cats.{ Eq, Id, Monad }
 import io.aecor.liberator.Term
 import org.scalacheck.{ Arbitrary, Cogen, Gen }
 
 class TermTests extends LiberatorSuite with TermInstances {
   trait M[F[_]]
   implicit def mf: M[Id] = new M[Id] {}
-  checkAll("Term[M, Int]", GroupLaws[Term[M, Int]].monoid)
+  checkAll("Term[M, Int]", GroupTests[Term[M, Int]].group)
   checkAll("Term[M, ?]", MonadTests[Term[M, ?]].monad[Int, Int, Int])
   checkAll("Monad[Term[M, ?]]", SerializableTests.serializable(Monad[Term[M, ?]]))
 }

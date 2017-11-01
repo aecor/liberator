@@ -1,11 +1,10 @@
 package io.aecor.liberator.tests
 
 import cats.data._
-import cats.free.{ Free, Inject }
+import cats.free.Free
 import cats.implicits._
-import cats.{ Applicative, Eval, Monad, ~> }
+import cats.{ Applicative, Eval, InjectK, Monad, ~> }
 import io.aecor.liberator.Term
-import io.aecor.liberator.Term.{ Effect, Invocation }
 import io.aecor.liberator.data.ProductKK
 import io.aecor.liberator.macros._
 import io.aecor.liberator.syntax._
@@ -162,14 +161,12 @@ object TestApp {
                              ?[_]], ?]]
 
     type OpsCoproduct[A] =
-      Coproduct[KeyValueStore.KeyValueStoreOp[String, String, ?],
-                Coproduct[Logging.LoggingOp, UserInteraction.UserInteractionOp, ?],
-                A]
+      EitherK[KeyValueStore.KeyValueStoreOp[String, String, ?],
+              EitherK[Logging.LoggingOp, UserInteraction.UserInteractionOp, ?],
+              A]
 
-    implicit val userInteractionInject: Inject[UserInteraction.UserInteractionOp, OpsCoproduct] =
-      Inject.catsFreeRightInjectInstance(
-        Inject.catsFreeRightInjectInstance(Inject.catsFreeReflexiveInjectInstance)
-      )
+    implicit val userInteractionInjectK: InjectK[UserInteraction.UserInteractionOp, OpsCoproduct] =
+      InjectK.catsRightInjectKInstance(InjectK.catsRightInjectKInstance)
 
     def freeProgram =
       program[Free[OpsCoproduct, ?]]
