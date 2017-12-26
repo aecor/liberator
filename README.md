@@ -1,7 +1,7 @@
 # Liberator - sent to make you Free
 
 [![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/aecor/liberator)
-[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.11.svg)](https://github.com/aecor/liberator)
+[![Maven Central](https://img.shields.io/maven-central/v/io.aecor/liberator_2.12.svg)](https://github.com/aecor/liberator)
 [![Join the chat at https://gitter.im/aecor/liberator](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/aecor/liberator)
 
 The goal of this library is to generate everything you need to create programs using Free monad or tagless algebras, without boilerplate.
@@ -16,18 +16,18 @@ To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaVersion := "2.11.11"
-libraryDependencies += "io.aecor" %% "liberator" % "0.6.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.7.0"
 scalacOptions += "-Ypartial-unification"
-addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M7" cross CrossVersion.full)
+addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full)
 ```
 
 or
 
 ```scala
-scalaVersion := "2.12.2"
-libraryDependencies += "io.aecor" %% "liberator" % "0.6.0"
+scalaVersion := "2.12.4"
+libraryDependencies += "io.aecor" %% "liberator" % "0.7.0"
 scalacOptions += "-Ypartial-unification"
-addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M8" cross CrossVersion.full)
+addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full)
 ```
 
 ### Usage example
