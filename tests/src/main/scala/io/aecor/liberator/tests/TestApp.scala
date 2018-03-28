@@ -15,6 +15,7 @@ import scala.io.StdIn
 @free
 @algebra
 @functorK
+@reifyInvocations
 trait KeyValueStore[K, V, F[_]] {
   def setValue(key: K, value: V): F[Unit]
 

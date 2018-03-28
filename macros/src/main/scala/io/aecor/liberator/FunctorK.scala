@@ -1,19 +1,19 @@
 package io.aecor.liberator
 
-import cats.~>
+import cats.{ Functor, ~> }
 
 /**
   * Higher-kinded Functor
   */
 trait FunctorK[M[_[_]]] {
-  def mapK[F[_], G[_]](mf: M[F], fg: F ~> G): M[G]
+  def mapK[F[_]: Functor, G[_]](mf: M[F], fg: F ~> G): M[G]
 }
 
 object FunctorK {
   object syntax extends FunctorKSyntax
 
   final class OpsSyntaxIdOps[M[_[_]], F[_]](val self: M[F]) extends AnyVal {
-    def mapK[G[_]](f: F ~> G)(implicit M: FunctorK[M]): M[G] =
+    def mapK[G[_]](f: F ~> G)(implicit M: FunctorK[M], F: Functor[F]): M[G] =
       M.mapK(self, f)
   }
 
@@ -21,4 +21,10 @@ object FunctorK {
     @inline implicit def toFunctorKOps[M[_[_]], F[_]](self: M[F]): OpsSyntaxIdOps[M, F] =
       new OpsSyntaxIdOps(self)
   }
+
+  implicit def catsFunctionKFunctorKInstace[Op[_]]: FunctorK[Op ~> ?[_]] =
+    new FunctorK[~>[Op, ?[_]]] {
+      override def mapK[F[_]: Functor, G[_]](mf: ~>[Op, F], fg: ~>[F, G]): ~>[Op, G] =
+        mf.andThen(fg)
+    }
 }

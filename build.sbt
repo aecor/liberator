@@ -21,9 +21,9 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
   addCompilerPlugin("org.scalameta" % "paradise" % scalametaParadiseVersion cross CrossVersion.patch),
   addCompilerPlugin("org.spire-math" %% "kind-projector" % kindProjectorVersion cross CrossVersion.binary),
   // temporary workaround for https://github.com/scalameta/paradise/issues/10
-  scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
-  // temporary workaround for https://github.com/scalameta/paradise/issues/55
-  sources in (Compile, doc) := Nil, // macroparadise doesn't work with scaladoc yet.
+    scalacOptions in (Compile, console) := Seq(), // macroparadise plugin doesn't work in repl yet.
+    // temporary workaround for https://github.com/scalameta/paradise/issues/55
+    sources in (Compile, doc) := Nil, // macroparadise doesn't work with scaladoc yet.
   scalacOptions ++= Seq(
     "-Xplugin-require:macroparadise",
     "-Ypartial-unification",

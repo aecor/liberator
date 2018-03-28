@@ -11,6 +11,7 @@ trait Algebra[M[_[_]]] {
   type Out[_]
   def toFunctionK[F[_]](fa: M[F]): Out ~> F
   def fromFunctionK[F[_]](nat: Out ~> F): M[F]
+  def invoke[F[_], A](mf: M[F], f: Out[A]): F[A] = toFunctionK(mf)(f)
 }
 
 object Algebra {
@@ -32,4 +33,11 @@ object Algebra {
     def asFunctionK(implicit algebra: Algebra[F]): algebra.Out ~> A =
       algebra.toFunctionK(self)
   }
+
+  implicit def CatsFunctionKAlgebraInstance[Op[_]]: Algebra.Aux[Op ~> ?[_], Op] =
+    new Algebra[Op ~> ?[_]] {
+      override type Out[A] = Op[A]
+      override def toFunctionK[F[_]](fa: ~>[Op, F]): ~>[Op, F] = fa
+      override def fromFunctionK[F[_]](nat: ~>[Op, F]): ~>[Op, F] = nat
+    }
 }

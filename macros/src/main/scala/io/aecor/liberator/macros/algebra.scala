@@ -68,16 +68,22 @@ object AlgebraMacro {
       }
 
     val companionStats: Seq[Stat] = Seq(
-      q"""sealed abstract class $opTypeName[..$abstractParams, A] extends Product with Serializable {
+      q"""sealed abstract class $opTypeName[..$abstractParams, A] extends _root_.io.aecor.liberator.Term.Invocation[$unifiedBase, A] with Product with Serializable {
           ..$commonFieldsStat
          }
        """, {
         val freeAdtLeafs = abstractMethods.map {
           case q"def $name[..$tps](..$params): $_[$out]" =>
             q"""final case class ${Type.Name(name.value.capitalize)}[..${abstractParams ++ tps}](..$params)
-              extends ${Ctor.Name(opName)}[..$abstractTypes, $out]"""
+              extends ${Ctor.Name(opName)}[..$abstractTypes, $out] {
+                def invoke[F[_]](mf: $typeName[..$abstractTypes, F]): F[$out] = mf.$name(..${params.map(_.name.value).map(Term.Name(_))})
+                }
+              """
           case m @ q"def $name: ${someF: Type.Name}[$out]" =>
-            q"""final case object ${Term.Name(name.value.capitalize)} extends ${Ctor.Name(opName)}[..$abstractTypes, $out]"""
+            q"""final case object ${Term.Name(name.value.capitalize)} extends ${Ctor.Name(opName)}[..$abstractTypes, $out] {
+                def invoke[F[_]](mf: $typeName[..$abstractTypes, F]): F[$out] = mf.$name
+               }
+             """
         }
         q"""object ${Term.Name(opName)} {
         ..$freeAdtLeafs
@@ -100,20 +106,10 @@ object AlgebraMacro {
        """
       },
       {
-        val cases = abstractMethods.map {
-          case q"def $methodName[..$tps](..$params): $theF[$out]" =>
-            val args = params.map(_.name.value).map(Term.Name(_))
-            val exractArgs = args.map(Pat.Var.Term(_))
-            val ctor = Term.Name(opCaseName(methodName))
-            p"case $ctor(..$exractArgs) => ops.$methodName(..$args)"
-          case m @ q"def $methodName: ${someF: Type.Name}[$out]" =>
-            val objectName = Term.Name(opCaseName(methodName))
-            p"case $objectName => ops.$methodName"
-        }
         q"""def toFunctionK[..$abstractParams, F[_]](ops: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$unifiedOp, F] =
          new _root_.cats.arrow.FunctionK[$unifiedOp, F] {
-          def apply[A](op: $opTypeName[..$abstractTypes, A]): F[A] =
-            op match { ..case $cases }
+          def apply[A](invocation: $opTypeName[..$abstractTypes, A]): F[A] =
+            invocation.invoke(ops)
          }
        """
       },
@@ -121,10 +117,13 @@ object AlgebraMacro {
         implicit def liberatorAlgebraInstance[..$abstractParams]: _root_.io.aecor.liberator.Algebra.Aux[$unifiedBase, $unifiedOp] =
           new _root_.io.aecor.liberator.Algebra[$unifiedBase] {
             type Out[A] = $opTypeName[..$abstractTypes, A]
-            override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$unifiedOp, F] =
+            final override def toFunctionK[F[_]](of: $typeName[..$abstractTypes, F]): _root_.cats.arrow.FunctionK[$unifiedOp, F] =
               ${Term.Name(typeName.value)}.toFunctionK(of)
-            override def fromFunctionK[F[_]](f: _root_.cats.arrow.FunctionK[$unifiedOp, F]):  $typeName[..$abstractTypes, F] =
+            final override def fromFunctionK[F[_]](f: _root_.cats.arrow.FunctionK[$unifiedOp, F]):  $typeName[..$abstractTypes, F] =
               ${Term.Name(typeName.value)}.fromFunctionK(f)
+
+            final override def invoke[F[_], A](mf: $unifiedBase[F], f: Out[A]): F[A] = f.invoke(mf)
+
           }
     """
     )
