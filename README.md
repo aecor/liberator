@@ -16,7 +16,7 @@ To start using Liberator add the following to your `build.sbt` file:
 
 ```scala
 scalaVersion := "2.11.11"
-libraryDependencies += "io.aecor" %% "liberator" % "0.7.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.8.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full)
 ```
@@ -25,7 +25,7 @@ or
 
 ```scala
 scalaVersion := "2.12.4"
-libraryDependencies += "io.aecor" %% "liberator" % "0.7.0"
+libraryDependencies += "io.aecor" %% "liberator" % "0.8.0"
 scalacOptions += "-Ypartial-unification"
 addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full)
 ```
@@ -160,6 +160,40 @@ trait Logging[F[_]] {
 val fLogging: Logging[F] = ...
 val f2g: F ~> G = ...
 val gLogging: Logging[G] = fLogging.mapK(f2g) 
+
+```
+
+### ReifiedInvocations
+
+Liberator provides `@reifyInvocations` annotation.
+This macros generates [`ReifiedInvocations`](https://github.com/aecor/liberator/blob/master/macros/src/main/scala/io/aecor/liberator/ReifiedInvocations.scala) instance.
+Use case:
+```scala
+import io.aecor.liberator.macros.reifyInvocations
+import io.aecor.liberator.syntax._
+import monix.eval.Task._
+
+@reifyInvocations
+trait KVS[F[_]] {
+  def set(k: String, v: String): F[Unit]
+  def get(k: String): F[Option[Unit]]
+}
+
+type Halt[F[_], A] = F[Unit]
+
+object LoggingKVS extends KVS[Halt[Task, ?]] {
+  def set(k: String, v: String): Task[Unit] = Task(println(s"Set $k to $v"))
+  def get(k: String): Task[Unit] = Task(println(s"Get $k to $v"))
+}
+
+val realKVS: KVS[Task] = ...
+
+val introspected = ReifiedInvocations[KVS].mapK {
+  new (Invocation[KVS, ?] ~> Task) {
+    def apply[A](invocation: Invocation[KVS, A]): Task[A] =
+      invocation.invoke(LoggingKVS).flatMap(_ => invocation.invoke(realKVS))
+  }
+}
 
 ```
 
