@@ -4,7 +4,7 @@ import cats.~>
 
 trait ReifiedInvocations[M[_[_]]] extends FunctorK[M] {
   def invocations: M[Invocation[M, ?]]
-  def invoke[F[_]](f: Invocation[M, ?] ~> F): M[F] = mapK(invocations, f)
+  def mapInvocations[F[_]](f: Invocation[M, ?] ~> F): M[F] = mapK(invocations, f)
 }
 
 object ReifiedInvocations {
