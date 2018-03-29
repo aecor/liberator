@@ -28,6 +28,19 @@ object ReifiedInvocationsMacro {
       q"""
         implicit def aecorLiberatorReifiedInvocations[..${t.params}]: _root_.io.aecor.liberator.ReifiedInvocations[${t.unified}] =
           new _root_.io.aecor.liberator.ReifiedInvocations[${t.unified}] {
+            final def mapK[F[_], G[_]](mf: ${t.name}[..${t.paramTypes}, F], fg: _root_.cats.arrow.FunctionK[F, G]): ${t.name}[..${t.paramTypes}, G] =
+               new ${Ctor.Name(t.name.value)}[..${t.paramTypes}, G] {
+                 ..${
+                   t.methods.map {
+                     case Method(name, tps, params, out) =>
+                       if (params.nonEmpty)
+                         q"final def $name[..$tps](..$params): G[$out] = fg(mf.$name(..${params.map(_.name.value).map(Term.Name(_))}))"
+                       else
+                         q"final def $name[..$tps]: G[$out] = fg(mf.$name)"
+                   }
+                 }
+               }
+
             final val invocations: ${t.name}[..${t.paramTypes}, $unifiedInvocation] = new ${Ctor.Name(t.name.value)}[..${t.paramTypes}, $unifiedInvocation] {
               ..${
                 t.methods.map {

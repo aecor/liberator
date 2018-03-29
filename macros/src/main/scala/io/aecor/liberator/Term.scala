@@ -1,6 +1,6 @@
 package io.aecor.liberator
 
-import cats.{ Apply, CoflatMap, Group, Monad, ~> }
+import cats.{ Apply, CoflatMap, Functor, Group, Monad, ~> }
 import io.aecor.liberator.Term.{ Ap, Effect, FlatMap, Pure }
 
 import scala.annotation.tailrec

@@ -39,7 +39,7 @@ object FunctorKMacro {
       q"""
         implicit def liberatorFunctorKInstance[..$abstractParams]: io.aecor.liberator.FunctorK[$unifiedBase] =
           new io.aecor.liberator.FunctorK[$unifiedBase] {
-            final def mapK[F[_]: _root_.cats.Functor, G[_]](mf: $typeName[..$abstractTypes, F], fg: _root_.cats.arrow.FunctionK[F, G]): $typeName[..$abstractTypes, G] =
+            final def mapK[F[_], G[_]](mf: $typeName[..$abstractTypes, F], fg: _root_.cats.arrow.FunctionK[F, G]): $typeName[..$abstractTypes, G] =
               new ${Ctor.Name(typeName.value)}[..$abstractTypes, G] {
                 ..${
                   traitStats.map {

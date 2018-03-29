@@ -2,11 +2,12 @@ package io.aecor.liberator.tests
 
 import cats.kernel.laws.discipline.GroupTests
 import cats.laws.discipline.{ MonadTests, SerializableTests }
+import cats.tests.CatsSuite
 import cats.{ Eq, Id, Monad }
 import io.aecor.liberator.Term
 import org.scalacheck.{ Arbitrary, Cogen, Gen }
 
-class TermTests extends LiberatorSuite with TermInstances {
+class TermTests extends CatsSuite with TermInstances {
   trait M[F[_]]
   implicit def mf: M[Id] = new M[Id] {}
   checkAll("Term[M, Int]", GroupTests[Term[M, Int]].group)
