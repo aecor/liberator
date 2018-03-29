@@ -21,4 +21,10 @@ object FunctorK {
     @inline implicit def toFunctorKOps[M[_[_]], F[_]](self: M[F]): OpsSyntaxIdOps[M, F] =
       new OpsSyntaxIdOps(self)
   }
+
+  implicit def catsFunctionKFunctorKInstace[Op[_]]: FunctorK[Op ~> ?[_]] =
+    new FunctorK[~>[Op, ?[_]]] {
+      override def mapK[F[_], G[_]](mf: ~>[Op, F], fg: ~>[F, G]): ~>[Op, G] =
+        mf.andThen(fg)
+    }
 }

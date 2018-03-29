@@ -21,6 +21,7 @@ class functorK(commonFields: scala.Symbol*) extends scala.annotation.StaticAnnot
 }
 
 object FunctorKMacro {
+
   def apply(commonFields: List[String], base: Defn.Trait, companion: Option[Defn.Object]): Term.Block = {
     val typeName = base.name
     val traitStats = base.templ.stats.get

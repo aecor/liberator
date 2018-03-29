@@ -4,7 +4,7 @@ import cats.data._
 import cats.free.Free
 import cats.implicits._
 import cats.{ Applicative, Eval, InjectK, Monad, ~> }
-import io.aecor.liberator.Term
+import io.aecor.liberator.{ Term, ReifiedInvocations }
 import io.aecor.liberator.data.ProductKK
 import io.aecor.liberator.macros._
 import io.aecor.liberator.syntax._
@@ -15,6 +15,7 @@ import scala.io.StdIn
 @free
 @algebra
 @functorK
+@reifyInvocations
 trait KeyValueStore[K, V, F[_]] {
   def setValue(key: K, value: V): F[Unit]
 
@@ -136,6 +137,8 @@ object TestApp {
               program[F]
             }
       } yield ()
+
+    val kvsInvocations = ReifiedInvocations[KeyValueStore[String, String, ?[_]]].invocations
 
     case class AppState(keyValueStoreState: Map[String, String],
                         fileIOState: Map[String, Vector[String]])
