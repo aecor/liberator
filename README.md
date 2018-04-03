@@ -70,7 +70,7 @@ object KeyValueStore {
   }
   
   // A function to convert a natural transformation to your trait
-  def fromFunctionK[F[_]](f: KeyValueStoreFree ~> F]): KeyValueStore[F] = 
+  def fromFunctionK[F[_]](f: KeyValueStoreFree ~> F): KeyValueStore[F] = 
     new KeyValueStore[F] {
       def setValue(key: String, value: String): F[Unit] = 
         f(KeyValueStoreFree.SetValue(key, value))
