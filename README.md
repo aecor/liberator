@@ -1,3 +1,5 @@
+# This project is EOL. Please use https://github.com/typelevel/cats-tagless.
+
 # Liberator - sent to make you Free
 
 [![Build Status](https://img.shields.io/travis/aecor/liberator/master.svg)](https://travis-ci.org/aecor/liberator)
